@@ -1,5 +1,5 @@
 {
-  "source": "legado/precos-bobinas-chapas.xlsx",
+  "source": "https://vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx",
   "rows": [
     {
       "tipo": "201",

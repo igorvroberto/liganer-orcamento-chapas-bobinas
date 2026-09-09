@@ -211,10 +211,16 @@ export function setPriceCatalogRows(rows: PriceCatalogRow[], source: string): vo
   index = buildIndex(rows)
 }
 
-/** URL pública do Excel publicado com o app (`public/precos-bobinas-chapas.xlsx`). */
+/**
+ * Planilha compartilhada entre apps de orçamento (fora deste deploy):
+ * https://vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx
+ */
+export const SHARED_PRICE_WORKBOOK_PATH =
+  '/orcamento/tabelas/precos-chapas-bobinas.xlsx'
+
+/** URL pública do Excel compartilhado em /orcamento/tabelas/. */
 export function priceWorkbookUrl(): string {
-  const base = import.meta.env.BASE_URL || '/'
-  return `${base}precos-bobinas-chapas.xlsx`
+  return SHARED_PRICE_WORKBOOK_PATH
 }
 
 /**

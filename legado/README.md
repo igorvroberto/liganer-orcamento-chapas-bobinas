@@ -7,11 +7,13 @@ Mantido apenas como referência das regras de negócio. O app ativo deste
 repositório é a SPA Vite/React publicada em
 `vendas.liganer.com.br/orcamento/chapas-bobinas/`.
 
-A planilha `precos-bobinas-chapas.xlsx` é a **fonte dos preços** (fator 100 / ICMS).
+## Planilha de preços
 
-Fluxo de atualização:
-1. Substitua `legado/precos-bobinas-chapas.xlsx` pela nova planilha (mesmo formato de colunas).
-2. Rode `npm run sync:prices` (ou qualquer `npm run build` — o `prebuild` já sincroniza).
-3. Isso atualiza `public/precos-bobinas-chapas.xlsx` (lido pelo app no ar) e o JSON de fallback.
+A fonte oficial (compartilhada com outros apps) fica no HostGator:
 
-No navegador, o app busca `/orcamento/chapas-bobinas/precos-bobinas-chapas.xlsx` ao abrir. Também é possível trocar só esse arquivo no HostGator (FTP) e dar hard-refresh, sem rebuild — desde que o cabeçalho/colunas permaneçam iguais.
+`/vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx`
+
+URL: `https://vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx`
+
+Arquivos `legado/precos-*.xlsx` neste diretório são só fallback local para
+`npm run sync:prices` quando o download da URL compartilhada falha.

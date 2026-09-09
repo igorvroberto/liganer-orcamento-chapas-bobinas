@@ -45,10 +45,14 @@ Roda automaticamente no push da `main` quando `deploy/root-index/` (ou o própri
 
 ### Atualizar preços (planilha Excel)
 
-O app carrega `precos-bobinas-chapas.xlsx` ao abrir a página.
+Fonte compartilhada (fora deste app):
 
-- **Via GitHub:** substitua `legado/precos-bobinas-chapas.xlsx`, faça merge — o build copia para `public/` e publica no FTP.
-- **Via FTP direto:** substitua apenas `…/orcamento/chapas-bobinas/precos-bobinas-chapas.xlsx` no HostGator e faça hard-refresh (sem precisar rebuild), mantendo os mesmos cabeçalhos.
+`/vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx`
+
+URL pública: `https://vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx`
+
+- Substitua só esse arquivo no FTP e dê hard-refresh nos apps — sem rebuild.
+- O build deste repo só regenera o JSON de fallback embutido (`npm run sync:prices`).
 
 ### Primeira publicação
 

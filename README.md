@@ -30,12 +30,14 @@ npm run build
 npm run preview
 ```
 
-O `prebuild` sincroniza a planilha de preços (`legado/precos-bobinas-chapas.xlsx` → `public/` + JSON de fallback). Em produção o app lê o Excel em `/orcamento/chapas-bobinas/precos-bobinas-chapas.xlsx` automaticamente.
+O `prebuild` regenera o JSON de fallback a partir da planilha compartilhada
+(`/orcamento/tabelas/precos-chapas-bobinas.xlsx`). Em produção o app lê esse Excel
+direto no host (fora da pasta deste app), para outros repositórios usarem a mesma fonte.
 
 ## Atualizar preços
 
-1. Envie/substitua `legado/precos-bobinas-chapas.xlsx` (mesmas colunas).
-2. Commit + merge/deploy — ou, no HostGator, troque só `precos-bobinas-chapas.xlsx` e dê hard-refresh.
+1. Substitua no HostGator: `/vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx`
+2. Hard-refresh no navegador — sem rebuild. (Opcional: `npm run sync:prices` para atualizar o JSON de fallback no repo.)
 
 ## Funcionalidades
 
