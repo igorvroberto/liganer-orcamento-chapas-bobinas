@@ -10,15 +10,16 @@ export const THICKNESS_OPTIONS = [
 export const ICMS_OPTIONS = ['4%', '12%']
 export const COMMISSION_OPTIONS = ['Bonificada', 'Normal', 'Reduzida']
 export const COIL_TYPE_OPTIONS = ['Inteira', 'Cortada', 'Com PVC']
-export const MATERIAL_OPTIONS = ['Bobina inteira', 'Bobina reduzida', 'Chapa']
+export const MATERIAL_OPTIONS = ['BOBINA INTEIRA', 'BOBINA REDUZIDA', 'CHAPA']
 
 function calcField(
   key: string,
   label: string,
   type: FieldDef['type'],
   calc: FieldDef['calc'],
+  extra: Partial<FieldDef> = {},
 ): FieldDef {
-  return { key, label, type, virtual: true, calculated: true, calc }
+  return { key, label, type, virtual: true, calculated: true, calc, ...extra }
 }
 
 function footerFieldsModule(): FieldDef[] {
@@ -107,6 +108,7 @@ function pesoUnitarioField(): FieldDef {
     type: 'number',
     weightByMaterial: true,
     calc: 'pesoUnitario',
+    fractionDigits: 0,
   }
 }
 
@@ -152,7 +154,6 @@ function commercialFields({
       ? [{ key: 'tipo_bobina', label: 'Tipo\nbobina', aliases: ['tipo bobina'], options: COIL_TYPE_OPTIONS, askWhenNew: true } as FieldDef]
       : []),
     { key: 'comissao', label: 'Comissão', aliases: ['comissao', 'comissão'], options: COMMISSION_OPTIONS, askWhenNew: true },
-    { key: 'campanha', label: 'Campanha', aliases: ['campanha'] },
   ]
 }
 
@@ -166,38 +167,73 @@ function icmsField({ fromCatalog = false }: { fromCatalog?: boolean } = {}): Fie
       calculated: true,
       virtual: true,
       calc: 'icms',
+      fractionDigits: 0,
     }
   }
   return { key: 'icms', label: 'ICMS', aliases: ['icms'], options: ICMS_OPTIONS, askWhenNew: true }
 }
 
-function supplierFields(prefixes: string[] = ['mto'], includeAce = false): FieldDef[] {
-  const fields: FieldDef[] = []
+/** Ordem: ACE MTS/MTO, FIL IND, AÇOS PRIME, IMG, CSA, TETTO (cada um MTS depois MTO). */
+function supplierFields(
+  suffixes: Array<'mts' | 'mto'> = ['mto'],
+  { includeAce = false }: { includeAce?: boolean } = {},
+): FieldDef[] {
+  const groups: {
+    key: (suffix: string) => string
+    label: string
+    alias: (suffix: string) => string[]
+  }[] = []
+
   if (includeAce) {
-    fields.push(
-      { key: 'ace_mts', label: 'ACE\nMTS', aliases: ['ace mts'], type: 'boolean' },
-      { key: 'ace_mto', label: 'ACE\nMTO', aliases: ['ace mto'], type: 'boolean' },
-    )
+    groups.push({
+      key: (suffix) => `ace_${suffix}`,
+      label: 'ACE',
+      alias: (suffix) => [`ace ${suffix}`],
+    })
   }
-  for (const suffix of prefixes) {
-    const labelSuffix = suffix.toUpperCase()
-    fields.push(
-      {
-        key: `filial_industria_${suffix}`,
-        label: `FIL IND\n${labelSuffix}`,
-        aliases: [`filial industria ${suffix}`, `filial indústria ${suffix}`, `fil ind ${suffix}`],
+
+  groups.push(
+    {
+      key: (suffix) => `filial_industria_${suffix}`,
+      label: 'FIL IND',
+      alias: (suffix) => [
+        `filial industria ${suffix}`,
+        `filial indústria ${suffix}`,
+        `fil ind ${suffix}`,
+      ],
+    },
+    {
+      key: (suffix) => `acos_prime_${suffix}`,
+      label: 'AÇOS PRIME',
+      alias: (suffix) => [`acos prime ${suffix}`, `aços prime ${suffix}`],
+    },
+    {
+      key: (suffix) => `img_${suffix}`,
+      label: 'IMG',
+      alias: (suffix) => [`img ${suffix}`],
+    },
+    {
+      key: (suffix) => `csa_${suffix}`,
+      label: 'CSA',
+      alias: (suffix) => [`csa ${suffix}`],
+    },
+    {
+      key: (suffix) => `tetto_${suffix}`,
+      label: 'TETTO',
+      alias: (suffix) => [`tetto ${suffix}`],
+    },
+  )
+
+  const fields: FieldDef[] = []
+  for (const group of groups) {
+    for (const suffix of suffixes) {
+      fields.push({
+        key: group.key(suffix),
+        label: `${group.label}\n${suffix.toUpperCase()}`,
+        aliases: group.alias(suffix),
         type: 'boolean',
-      },
-      {
-        key: `acos_prime_${suffix}`,
-        label: `Aços Prime\n${labelSuffix}`,
-        aliases: [`acos prime ${suffix}`, `aços prime ${suffix}`],
-        type: 'boolean',
-      },
-      { key: `img_${suffix}`, label: `IMG\n${labelSuffix}`, aliases: [`img ${suffix}`], type: 'boolean' },
-      { key: `csa_${suffix}`, label: `CSA\n${labelSuffix}`, aliases: [`csa ${suffix}`], type: 'boolean' },
-      { key: `tetto_${suffix}`, label: `Tetto\n${labelSuffix}`, aliases: [`tetto ${suffix}`], type: 'boolean' },
-    )
+      })
+    }
   }
   return fields
 }
@@ -225,12 +261,12 @@ export const MODELS: ModelDef[] = [
     sheet: 'Orçamento',
     rowRange: '3 a 12',
     fields: [
-      ...alloyFields('Chapa', { selectableMaterial: true }),
+      ...alloyFields('CHAPA', { selectableMaterial: true }),
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
       { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd', 'peças', 'pecas'], type: 'number' },
       pesoUnitarioField(),
-      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal'),
+      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal', { fractionDigits: 0 }),
       { key: 'um', label: 'UM', aliases: ['um', 'unidade medida'], default: 'KG', hiddenInApp: true },
       calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
       icmsField({ fromCatalog: true }),
@@ -239,7 +275,7 @@ export const MODELS: ModelDef[] = [
       { key: 'preco_servico', label: 'Preço\nserviço', aliases: ['preco servico', 'preço serviço'], type: 'currency' },
       { key: 'descricao_servico', label: 'Descrição\nserviço', aliases: ['descricao servico', 'descrição serviço'] },
       calcField('_preco_total', 'Preço\ntotal', 'currency', 'precoTotal'),
-      ...supplierFields(['mts', 'mto'], true),
+      ...supplierFields(['mts', 'mto'], { includeAce: true }),
       ...footerFieldsModule(),
     ],
   },
@@ -248,12 +284,12 @@ export const MODELS: ModelDef[] = [
     name: 'Bobinas',
     status: 'configured',
     fields: [
-      ...alloyFields('Bobina inteira', { selectableMaterial: true }),
+      ...alloyFields('BOBINA INTEIRA', { selectableMaterial: true }),
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
       { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd'], type: 'number' },
       pesoUnitarioField(),
-      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal'),
+      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal', { fractionDigits: 0 }),
       { key: 'um', label: 'UM', aliases: ['um'], default: 'KG', hiddenInApp: true },
       calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
       icmsField({ fromCatalog: true }),
@@ -262,7 +298,7 @@ export const MODELS: ModelDef[] = [
       { key: 'preco_servico', label: 'Preço\nserviço', aliases: ['preco servico', 'preço serviço'], type: 'currency' },
       { key: 'descricao_servico', label: 'Descrição\nserviço', aliases: ['descricao servico', 'descrição serviço'] },
       calcField('_preco_total', 'Preço\ntotal', 'currency', 'precoTotal'),
-      ...supplierFields(['mts', 'mto']),
+      ...supplierFields(['mts', 'mto'], { includeAce: true }),
       ...footerFieldsModule(),
     ],
   },
@@ -274,8 +310,8 @@ export const MODELS: ModelDef[] = [
       ...alloyFields('FITA'),
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd'], type: 'number' },
-      { key: 'peso_unitario', label: 'Peso\nunitário', aliases: ['peso unitario', 'peso unitário'], type: 'number' },
-      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal'),
+      { key: 'peso_unitario', label: 'Peso\nunitário', aliases: ['peso unitario', 'peso unitário'], type: 'number', fractionDigits: 0 },
+      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal', { fractionDigits: 0 }),
       { key: 'um', label: 'UM', aliases: ['um'], default: 'KG', hiddenInApp: true },
       calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
       { key: 'icms', label: 'ICMS', aliases: ['icms'], options: ICMS_OPTIONS, askWhenNew: true },
@@ -305,8 +341,8 @@ export const MODELS: ModelDef[] = [
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
       { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd'], type: 'number' },
-      calcField('_peso_unitario', 'Peso\nunitário', 'number', 'pesoUnitario'),
-      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal'),
+      calcField('_peso_unitario', 'Peso\nunitário', 'number', 'pesoUnitario', { fractionDigits: 0 }),
+      calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal', { fractionDigits: 0 }),
       { key: 'um', label: 'UM', aliases: ['um'], default: 'KG', hiddenInApp: true },
       calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
       { key: 'icms', label: 'ICMS', aliases: ['icms'], options: ICMS_OPTIONS, askWhenNew: true },

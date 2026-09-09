@@ -295,10 +295,16 @@ export default function App() {
       const nextRow: ItemRow = { ...previous, [key]: value }
       if (key === 'material' && isBobinaMaterial({ material: value })) {
         // Ao mudar para bobina, sugere o peso calculado da chapa se ainda não houver peso manual.
-        const suggested = sheetUnitWeight({ ...nextRow, material: 'Chapa' })
+        const suggested = sheetUnitWeight({ ...nextRow, material: 'CHAPA' })
         if (!numericValue(previous.peso_unitario) && suggested > 0) {
-          nextRow.peso_unitario = Number(suggested.toFixed(3))
+          nextRow.peso_unitario = Math.round(suggested)
         }
+      }
+      if (key === 'material') {
+        nextRow.material = String(value).trim().toUpperCase()
+      }
+      if (key === 'peso_unitario' && value !== '' && value !== undefined) {
+        nextRow.peso_unitario = Math.round(numericValue(value))
       }
       list[index] = nextRow
       return { ...prev, [modelId]: list }

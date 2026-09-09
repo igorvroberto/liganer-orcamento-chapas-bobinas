@@ -1,10 +1,10 @@
 import { numericValue } from './calc'
 import type { FieldDef } from './types'
 
-export function formatNumber(value: number): string {
+export function formatNumber(value: number, fractionDigits = 2): string {
   return Number(value || 0).toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   })
 }
 
@@ -15,11 +15,11 @@ export function formatCurrency(value: number): string {
   })
 }
 
-export function formatPercent(value: number): string {
+export function formatPercent(value: number, fractionDigits = 2): string {
   return Number(value || 0).toLocaleString('pt-BR', {
     style: 'percent',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
   })
 }
 
@@ -37,12 +37,17 @@ export function displayFieldValue(value: unknown, field: FieldDef): string {
     return value ? 'Sim' : 'Não'
   }
   if (value === undefined || value === null || value === '') return '—'
+  const digits = field.fractionDigits ?? 2
   if (field.type === 'currency') return formatCurrency(numericValue(value))
   if (field.type === 'percent') {
     const n = numericValue(value)
-    return formatPercent(n > 1 ? n / 100 : n)
+    return formatPercent(n > 1 ? n / 100 : n, digits)
   }
-  if (field.type === 'number') return formatNumber(numericValue(value))
+  if (field.type === 'number') {
+    const n = numericValue(value)
+    const rounded = digits === 0 ? Math.round(n) : n
+    return formatNumber(rounded, digits)
+  }
   return String(value)
 }
 

@@ -15,6 +15,8 @@ export type FieldDef = {
   calculated?: boolean
   /** Peso unitário: calculado/bloqueado para Chapa, editável para Bobina inteira/reduzida */
   weightByMaterial?: boolean
+  /** Casas decimais na exibição (padrão 2). Use 0 para inteiros. */
+  fractionDigits?: number
   calc?: keyof RowCalculation
 }
 

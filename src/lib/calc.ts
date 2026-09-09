@@ -69,8 +69,9 @@ export function calculateRow(
   const icms = catalog?.icms ?? percentRate(row.icms)
 
   const manualWeight = usesManualUnitWeight(modelId, row)
-  const pesoUnitario = manualWeight ? numericValue(row.peso_unitario) : sheetUnitWeight(row)
-  const pesoTotal = unidade * pesoUnitario
+  const rawUnitWeight = manualWeight ? numericValue(row.peso_unitario) : sheetUnitWeight(row)
+  const pesoUnitario = Math.round(rawUnitWeight)
+  const pesoTotal = Math.round(unidade * rawUnitWeight)
 
   const precoFatorUtilizado = fatorUtilizado ? precoFator100 / (fatorUtilizado / 100) : 0
   const precoBobinaFatorUtilizado = fatorUtilizado
