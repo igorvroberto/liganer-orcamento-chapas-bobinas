@@ -51,7 +51,7 @@ button {
 }
 
 .app-shell {
-  width: min(980px, 100%);
+  width: min(1480px, 100%);
   margin: 0 auto;
   padding: 22px 16px 48px;
 }
@@ -236,23 +236,124 @@ select:disabled {
   cursor: not-allowed;
 }
 
-.item-card {
+.table-card {
+  padding-bottom: 12px;
+}
+
+.table-scroll {
+  overflow-x: auto;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 14px;
-  background: #fbfcfd;
-  margin-bottom: 10px;
+  background: #fff;
 }
 
-.item-card header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
+.items-table {
+  width: 100%;
+  min-width: 1680px;
+  border-collapse: collapse;
+  background: #fff;
 }
 
-.item-card header strong {
-  font-size: 0.95rem;
+.items-table th,
+.items-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.items-table th {
+  background: #e8f1f5;
+  color: var(--brand);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.25;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.items-table th.boolean-column,
+.items-table td.boolean-column {
+  min-width: 74px;
+  width: 74px;
+  text-align: center;
+}
+
+.items-table td.formula-cell {
+  background: #f3f8fb;
+}
+
+.items-table .delete-column,
+.items-table .item-number-column {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  text-align: center;
+}
+
+.item-number-cell {
+  color: var(--muted);
+  font-weight: 800;
+  text-align: center;
+}
+
+.calculated-cell {
+  display: inline-block;
+  min-width: 72px;
+  color: var(--brand-2);
+  font-weight: 800;
+  font-size: 0.86rem;
+}
+
+.cell-control {
+  min-height: 34px;
+  min-width: 92px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.86rem;
+}
+
+.cell-control:disabled {
+  background: #eef2f5;
+  color: var(--muted);
+}
+
+.cell-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand);
+}
+
+.trash-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff1f0;
+  color: var(--danger);
+  font-size: 1.1rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.editing-row td {
+  background: rgba(31, 111, 139, 0.06);
+}
+
+.dictation-cell .cell-control,
+.dictation-cell .cell-check {
+  outline: 2px solid rgba(196, 92, 38, 0.45);
+  border-color: var(--accent);
 }
 
 .summary-grid {

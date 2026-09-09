@@ -45,7 +45,8 @@ function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null
 }
 
-function FieldInput({
+/** Controles compactos para células da tabela (campos lado a lado). */
+function CellControl({
   field,
   value,
   onChange,
@@ -55,37 +56,70 @@ function FieldInput({
   onChange: (value: string | number | boolean) => void
 }) {
   if (field.calculated) {
-    return (
-      <label className="field">
-        <span>{field.label}</span>
-        <input disabled value={displayFieldValue(value, field)} />
-      </label>
-    )
+    return <span className="calculated-cell">{displayFieldValue(value, field)}</span>
   }
 
   if (field.type === 'boolean') {
-    const on = Boolean(value)
     return (
-      <label className="field boolean">
-        <span>{field.label}</span>
-        <div className="toggle-row">
-          <button type="button" className={on ? 'active' : ''} onClick={() => onChange(true)}>
-            Sim
-          </button>
-          <button type="button" className={!on ? 'active' : ''} onClick={() => onChange(false)}>
-            Não
-          </button>
-        </div>
-      </label>
+      <input
+        className="cell-check"
+        type="checkbox"
+        checked={Boolean(value)}
+        onChange={(e) => onChange(e.target.checked)}
+        aria-label={fieldLabel(field.label)}
+      />
     )
   }
 
   if (field.options?.length) {
     return (
+      <select
+        className="cell-control"
+        disabled={field.locked}
+        value={value == null ? '' : String(value)}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={fieldLabel(field.label)}
+      >
+        <option value="">—</option>
+        {field.options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    )
+  }
+
+  return (
+    <input
+      className="cell-control"
+      disabled={field.locked}
+      inputMode={
+        field.type === 'number' || field.type === 'currency' || field.type === 'percent'
+          ? 'decimal'
+          : 'text'
+      }
+      value={value == null ? '' : String(value)}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={fieldLabel(field.label)}
+    />
+  )
+}
+
+function ConditionField({
+  field,
+  value,
+  onChange,
+}: {
+  field: FieldDef
+  value: string | number | boolean | undefined
+  onChange: (value: string | number | boolean) => void
+}) {
+  if (field.options?.length) {
+    return (
       <label className="field">
         <span>{field.label}</span>
         <select
-          disabled={field.locked}
           value={value == null ? '' : String(value)}
           onChange={(e) => onChange(e.target.value)}
         >
@@ -104,8 +138,11 @@ function FieldInput({
     <label className="field">
       <span>{field.label}</span>
       <input
-        disabled={field.locked}
-        inputMode={field.type === 'number' || field.type === 'currency' || field.type === 'percent' ? 'decimal' : 'text'}
+        inputMode={
+          field.type === 'number' || field.type === 'currency' || field.type === 'percent'
+            ? 'decimal'
+            : 'text'
+        }
         value={value == null ? '' : String(value)}
         onChange={(e) => onChange(e.target.value)}
       />
@@ -127,6 +164,7 @@ export default function App() {
   const [config, setConfig] = useState<SyncConfig>({})
   const [listening, setListening] = useState(false)
   const [activeFieldKey, setActiveFieldKey] = useState<string | null>(null)
+  const [activeRowIndex, setActiveRowIndex] = useState(0)
 
   const model = getModel(modelId)
   const fields = itemFields(model)
@@ -168,17 +206,20 @@ export default function App() {
   }
 
   function addItem() {
-    setRowsByModel((prev) => ({
-      ...prev,
-      [modelId]: [...(prev[modelId] || []), emptyRowDefaults(fields)],
-    }))
+    setRowsByModel((prev) => {
+      const next = [...(prev[modelId] || []), emptyRowDefaults(fields)]
+      setActiveRowIndex(next.length - 1)
+      return { ...prev, [modelId]: next }
+    })
   }
 
   function removeItem(index: number) {
     setRowsByModel((prev) => {
       const list = [...(prev[modelId] || [])]
       list.splice(index, 1)
-      return { ...prev, [modelId]: list.length ? list : [emptyRowDefaults(fields)] }
+      const next = list.length ? list : [emptyRowDefaults(fields)]
+      setActiveRowIndex((current) => Math.min(current, next.length - 1))
+      return { ...prev, [modelId]: next }
     })
   }
 
@@ -216,11 +257,14 @@ export default function App() {
       return
     }
     const editable = fields.filter((f) => !f.calculated && !f.locked)
-    if (!editable.length) return
-    const currentKey = activeFieldKey && editable.some((f) => f.key === activeFieldKey)
-      ? activeFieldKey
-      : editable[0].key
+    if (!editable.length || !rows.length) return
+    const rowIndex = Math.min(Math.max(activeRowIndex, 0), rows.length - 1)
+    const currentKey =
+      activeFieldKey && editable.some((f) => f.key === activeFieldKey)
+        ? activeFieldKey
+        : editable[0].key
     setActiveFieldKey(currentKey)
+    setActiveRowIndex(rowIndex)
 
     const recognition = new Ctor()
     recognition.lang = 'pt-BR'
@@ -231,19 +275,25 @@ export default function App() {
         .map((r) => r[0].transcript)
         .join(' ')
         .trim()
-      if (!transcript || !rows.length) return
-      updateRow(0, currentKey, transcript)
+      if (!transcript) return
+      updateRow(rowIndex, currentKey, transcript)
       const idx = editable.findIndex((f) => f.key === currentKey)
       const next = editable[(idx + 1) % editable.length]
       setActiveFieldKey(next.key)
-      setStatus({ text: `Gravado em ${fieldLabel(editable[idx].label)}. Próximo: ${fieldLabel(next.label)}.`, kind: 'ok' })
+      setStatus({
+        text: `Item ${rowIndex + 1}: gravado em ${fieldLabel(editable[idx].label)}. Próximo: ${fieldLabel(next.label)}.`,
+        kind: 'ok',
+      })
     }
     recognition.onerror = () => setListening(false)
     recognition.onend = () => setListening(false)
     try {
       recognition.start()
       setListening(true)
-      setStatus({ text: `Ouvindo: ${fieldLabel(editable.find((f) => f.key === currentKey)!.label)}`, kind: 'ok' })
+      setStatus({
+        text: `Ouvindo item ${rowIndex + 1}: ${fieldLabel(editable.find((f) => f.key === currentKey)!.label)}`,
+        kind: 'ok',
+      })
     } catch {
       setStatus({ text: 'Não foi possível iniciar o microfone.', kind: 'error' })
     }
@@ -261,8 +311,8 @@ export default function App() {
         </div>
       </div>
       <p className="lede">
-        Monte orçamentos de chapas, bobinas, slitters/fitas e blanks com cálculo de peso, fator,
-        frete e IPI — no mesmo padrão dos apps de vendas Liganer.
+        Preencha os itens na tabela (colunas lado a lado), como na planilha original — com cálculo de
+        peso, fator, frete e IPI.
       </p>
 
       {model.status === 'pending' && (
@@ -272,9 +322,8 @@ export default function App() {
         </div>
       )}
 
-      <section className="card">
-        <h2>Cliente</h2>
-        <div className="grid-2">
+      <section className="card toolbar-card">
+        <div className="grid-3">
           <label className="field">
             <span>Nome do cliente</span>
             <input
@@ -291,25 +340,21 @@ export default function App() {
               onChange={(e) => setClient((c) => ({ ...c, cnpj: formatCnpj(e.target.value) }))}
             />
           </label>
+          <label className="field">
+            <span>Modelo</span>
+            <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
+              {MODELS.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                  {m.status === 'pending' ? ' (pendente)' : ''}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </section>
 
-      <section className="card">
-        <h2>Modelo</h2>
-        <label className="field">
-          <span>Tipo de material / linha</span>
-          <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
-            {MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-                {m.status === 'pending' ? ' (pendente)' : ''}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-
-      <section className="card">
+      <section className="card table-card">
         <div className="section-heading">
           <h2>Itens</h2>
           <div className="actions">
@@ -322,37 +367,84 @@ export default function App() {
           </div>
         </div>
         {activeFieldKey && (
-          <p className="mic-row hint">Campo de ditado atual: {fieldLabel(fields.find((f) => f.key === activeFieldKey)?.label || activeFieldKey)}</p>
+          <p className="mic-row hint">
+            Ditado: item {Math.min(activeRowIndex, rows.length - 1) + 1} ·{' '}
+            {fieldLabel(fields.find((f) => f.key === activeFieldKey)?.label || activeFieldKey)}
+          </p>
         )}
 
-        {rows.map((row, index) => {
-          const calc = calculateRow(modelId, row, conditions)
-          return (
-            <article className="item-card" key={index}>
-              <header>
-                <strong>Item {index + 1}</strong>
-                <button type="button" className="btn btn-danger" onClick={() => removeItem(index)}>
-                  Remover
-                </button>
-              </header>
-              <div className="grid-2">
-                {fields.map((field) => {
-                  const value = field.calculated && field.calc
-                    ? calc[field.calc]
-                    : row[field.key]
-                  return (
-                    <FieldInput
-                      key={field.key}
-                      field={field}
-                      value={value}
-                      onChange={(v) => updateRow(index, field.key, v)}
-                    />
-                  )
-                })}
-              </div>
-            </article>
-          )
-        })}
+        <div className="table-scroll">
+          <table className="items-table">
+            <thead>
+              <tr>
+                <th className="delete-column" aria-label="Ações" />
+                <th className="item-number-column">Item</th>
+                {fields.map((field) => (
+                  <th
+                    key={field.key}
+                    className={field.type === 'boolean' ? 'boolean-column' : undefined}
+                  >
+                    {field.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => {
+                const calc = calculateRow(modelId, row, conditions)
+                const isActive = index === activeRowIndex
+                return (
+                  <tr
+                    key={index}
+                    className={isActive ? 'editing-row' : undefined}
+                    onClick={() => setActiveRowIndex(index)}
+                  >
+                    <td className="delete-column">
+                      <button
+                        type="button"
+                        className="trash-button"
+                        aria-label={`Remover item ${index + 1}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeItem(index)
+                        }}
+                      >
+                        ×
+                      </button>
+                    </td>
+                    <td className="item-number-cell">{index + 1}</td>
+                    {fields.map((field) => {
+                      const value =
+                        field.calculated && field.calc ? calc[field.calc] : row[field.key]
+                      return (
+                        <td
+                          key={field.key}
+                          className={[
+                            field.type === 'boolean' ? 'boolean-column' : '',
+                            field.calculated ? 'formula-cell' : '',
+                            activeFieldKey === field.key && isActive ? 'dictation-cell' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        >
+                          <CellControl
+                            field={field}
+                            value={value}
+                            onChange={(v) => {
+                              setActiveRowIndex(index)
+                              setActiveFieldKey(field.key)
+                              updateRow(index, field.key, v)
+                            }}
+                          />
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="card">
@@ -385,7 +477,7 @@ export default function App() {
         <h2>Condições</h2>
         <div className="grid-2">
           {conditionsFields.map((field) => (
-            <FieldInput
+            <ConditionField
               key={field.key}
               field={field}
               value={conditions[field.key]}
