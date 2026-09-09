@@ -28,7 +28,7 @@ export type ModelDef = {
 
 export type ItemRow = Record<string, string | number | boolean | undefined>
 
-export type Conditions = Record<string, string | number | undefined>
+export type Conditions = Record<string, string | number | boolean | undefined>
 
 export type ClientInfo = {
   name: string

@@ -98,6 +98,121 @@ h1 {
   max-width: 62ch;
 }
 
+.voice-panel {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.footer-voice-panel {
+  margin-top: 0;
+}
+
+.mic-button {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 126px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  padding: 14px;
+}
+
+.mic-button.listening {
+  background: #9f1239;
+  animation: pulse-mic 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-mic {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(159, 18, 57, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(159, 18, 57, 0);
+  }
+}
+
+.mic-glyph {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.mic-glyph svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dictation-current {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+}
+
+.dictation-current span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dictation-current strong {
+  font-size: 1.35rem;
+  line-height: 1.15;
+}
+
+.field-nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.nav-button {
+  width: 40px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f7f9fb;
+  color: var(--brand);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.interim {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--brand-2);
+  font-style: italic;
+}
+
+.voice-hint {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.field-listening input,
+.field-listening select {
+  outline: 2px solid rgba(196, 92, 38, 0.45);
+  border-color: var(--accent);
+}
+
 .card {
   background: var(--paper);
   border: 1px solid rgba(213, 221, 228, 0.95);
@@ -420,6 +535,10 @@ select:disabled {
   .grid-2,
   .grid-3,
   .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .voice-panel {
     grid-template-columns: 1fr;
   }
 }

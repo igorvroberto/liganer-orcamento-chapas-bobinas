@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateRow, calculateSummary } from './lib/calc'
 import { exportCsv, exportExcel, exportPdf } from './lib/export'
 import {
@@ -17,6 +17,14 @@ import {
   itemFields,
 } from './lib/models'
 import {
+  coerceDictatedValue,
+  extractDictatedValue,
+  getSpeechRecognitionCtor,
+  isNewLineCommand,
+  isSkipCommand,
+  type SpeechRecognitionLike,
+} from './lib/speech'
+import {
   loadConfig,
   loadDraft,
   pushSavedBudget,
@@ -26,26 +34,19 @@ import {
 } from './lib/storage'
 import type { ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
 
-type SpeechRecognitionLike = {
-  lang: string
-  continuous: boolean
-  interimResults: boolean
-  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string }; isFinal: boolean }> }) => void) | null
-  onerror: (() => void) | null
-  onend: (() => void) | null
-  start: () => void
-  stop: () => void
+type DictationTarget = 'item' | 'footer'
+
+function MicIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5a3 3 0 0 0 3 3Z" />
+      <path d="M19 11a7 7 0 0 1-14 0" />
+      <path d="M12 18v3" />
+      <path d="M8 21h8" />
+    </svg>
+  )
 }
 
-function getSpeechRecognition(): (new () => SpeechRecognitionLike) | null {
-  const w = window as Window & {
-    SpeechRecognition?: new () => SpeechRecognitionLike
-    webkitSpeechRecognition?: new () => SpeechRecognitionLike
-  }
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null
-}
-
-/** Controles compactos para células da tabela (campos lado a lado). */
 function CellControl({
   field,
   value,
@@ -110,14 +111,16 @@ function ConditionField({
   field,
   value,
   onChange,
+  highlighted,
 }: {
   field: FieldDef
   value: string | number | boolean | undefined
   onChange: (value: string | number | boolean) => void
+  highlighted?: boolean
 }) {
   if (field.options?.length) {
     return (
-      <label className="field">
+      <label className={`field ${highlighted ? 'field-listening' : ''}`}>
         <span>{field.label}</span>
         <select
           value={value == null ? '' : String(value)}
@@ -135,7 +138,7 @@ function ConditionField({
   }
 
   return (
-    <label className="field">
+    <label className={`field ${highlighted ? 'field-listening' : ''}`}>
       <span>{field.label}</span>
       <input
         inputMode={
@@ -163,15 +166,57 @@ export default function App() {
   const [status, setStatus] = useState<{ text: string; kind?: 'ok' | 'error' }>({ text: '' })
   const [config, setConfig] = useState<SyncConfig>({})
   const [listening, setListening] = useState(false)
-  const [activeFieldKey, setActiveFieldKey] = useState<string | null>(null)
+  const [autoListen, setAutoListen] = useState(false)
+  const [dictationTarget, setDictationTarget] = useState<DictationTarget>('item')
+  const [itemStepIndex, setItemStepIndex] = useState(0)
+  const [footerStepIndex, setFooterStepIndex] = useState(0)
   const [activeRowIndex, setActiveRowIndex] = useState(0)
+  const [interimText, setInterimText] = useState('')
+
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const autoListenRef = useRef(false)
+  const targetRef = useRef<DictationTarget>('item')
+  const retryRef = useRef(0)
+  const startedAtRef = useRef(0)
+  const hadResultRef = useRef(false)
+
+  // Keep latest state for speech callbacks
+  const stateRef = useRef({
+    modelId,
+    rowsByModel,
+    draftsByModel,
+    itemStepIndex,
+    footerStepIndex,
+    activeRowIndex,
+  })
+  stateRef.current = {
+    modelId,
+    rowsByModel,
+    draftsByModel,
+    itemStepIndex,
+    footerStepIndex,
+    activeRowIndex,
+  }
 
   const model = getModel(modelId)
   const fields = itemFields(model)
   const conditionsFields = footerFields(model)
+  const dictatableItemFields = fields.filter((f) => !f.calculated && !f.locked && !f.hiddenInApp)
   const rows = rowsByModel[modelId] || []
   const conditions = draftsByModel[modelId] || {}
   const summary = calculateSummary(modelId, rows, conditions)
+
+  const safeRowIndex = rows.length ? Math.min(Math.max(activeRowIndex, 0), rows.length - 1) : 0
+  const safeItemStep = dictatableItemFields.length
+    ? ((itemStepIndex % dictatableItemFields.length) + dictatableItemFields.length) %
+      dictatableItemFields.length
+    : 0
+  const safeFooterStep = conditionsFields.length
+    ? ((footerStepIndex % conditionsFields.length) + conditionsFields.length) %
+      conditionsFields.length
+    : 0
+  const currentItemField = dictatableItemFields[safeItemStep]
+  const currentFooterField = conditionsFields[safeFooterStep]
 
   useEffect(() => {
     void loadConfig().then(setConfig)
@@ -190,6 +235,30 @@ export default function App() {
     }
   }, [modelId, rowsByModel])
 
+  useEffect(() => {
+    setItemStepIndex(0)
+    setFooterStepIndex(0)
+  }, [modelId])
+
+  useEffect(() => {
+    autoListenRef.current = autoListen
+  }, [autoListen])
+
+  useEffect(() => {
+    targetRef.current = dictationTarget
+  }, [dictationTarget])
+
+  useEffect(() => {
+    return () => {
+      autoListenRef.current = false
+      try {
+        recognitionRef.current?.stop()
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [])
+
   function updateRow(index: number, key: string, value: string | number | boolean) {
     setRowsByModel((prev) => {
       const list = [...(prev[modelId] || [])]
@@ -198,17 +267,20 @@ export default function App() {
     })
   }
 
-  function updateCondition(key: string, value: string | number) {
+  function updateCondition(key: string, value: string | number | boolean) {
     setDraftsByModel((prev) => ({
       ...prev,
       [modelId]: { ...(prev[modelId] || {}), [key]: value },
     }))
   }
 
-  function addItem() {
+  function addItem(selectNew = true) {
     setRowsByModel((prev) => {
       const next = [...(prev[modelId] || []), emptyRowDefaults(fields)]
-      setActiveRowIndex(next.length - 1)
+      if (selectNew) {
+        setActiveRowIndex(next.length - 1)
+        setItemStepIndex(0)
+      }
       return { ...prev, [modelId]: next }
     })
   }
@@ -221,6 +293,237 @@ export default function App() {
       setActiveRowIndex((current) => Math.min(current, next.length - 1))
       return { ...prev, [modelId]: next }
     })
+  }
+
+  function advanceItemField() {
+    setItemStepIndex((idx) => {
+      const next = idx + 1
+      if (next >= dictatableItemFields.length) {
+        // Finish current row → next dictation creates/moves to new line
+        setStatus({ text: 'Item concluído. Próximo ditado iniciará uma nova linha.', kind: 'ok' })
+        setRowsByModel((prev) => {
+          const list = [...(prev[modelId] || [])]
+          list.push(emptyRowDefaults(fields))
+          setActiveRowIndex(list.length - 1)
+          return { ...prev, [modelId]: list }
+        })
+        return 0
+      }
+      return next
+    })
+  }
+
+  function advanceFooterField() {
+    setFooterStepIndex((idx) => idx + 1)
+  }
+
+  function applySpeechResult(transcript: string, target: DictationTarget) {
+    const text = transcript.trim()
+    if (!text) return
+
+    if (isSkipCommand(text)) {
+      if (target === 'footer') advanceFooterField()
+      else advanceItemField()
+      setStatus({ text: 'Campo pulado.', kind: 'ok' })
+      return
+    }
+
+    if (target === 'item' && isNewLineCommand(text)) {
+      addItem(true)
+      setItemStepIndex(0)
+      setStatus({ text: 'Nova linha pronta para ditado.', kind: 'ok' })
+      return
+    }
+
+    const snap = stateRef.current
+    const modelNow = getModel(snap.modelId)
+    const itemFs = itemFields(modelNow).filter((f) => !f.calculated && !f.locked && !f.hiddenInApp)
+    const footerFs = footerFields(modelNow)
+
+    if (target === 'footer') {
+      if (!footerFs.length) return
+      const step =
+        ((snap.footerStepIndex % footerFs.length) + footerFs.length) % footerFs.length
+      const field = footerFs[step]
+      const extracted = extractDictatedValue(text, field, footerFs) || text
+      const value = coerceDictatedValue(extracted, field)
+      updateCondition(field.key, value)
+      advanceFooterField()
+      setStatus({
+        text: `Condição gravada: ${fieldLabel(field.label)}.`,
+        kind: 'ok',
+      })
+      return
+    }
+
+    if (!itemFs.length) return
+    const rowsNow = snap.rowsByModel[snap.modelId] || []
+    let rowIndex = rowsNow.length
+      ? Math.min(Math.max(snap.activeRowIndex, 0), rowsNow.length - 1)
+      : 0
+    if (!rowsNow.length) {
+      addItem(true)
+      rowIndex = 0
+    }
+    const step = ((snap.itemStepIndex % itemFs.length) + itemFs.length) % itemFs.length
+    const field = itemFs[step]
+    const extracted = extractDictatedValue(text, field, itemFs)
+    if (!extracted) {
+      setStatus({
+        text: `Nenhum valor reconhecido para ${fieldLabel(field.label)}. Tente de novo ou diga "pular".`,
+        kind: 'error',
+      })
+      return
+    }
+    const value = coerceDictatedValue(extracted, field)
+    updateRow(rowIndex, field.key, value)
+    setActiveRowIndex(rowIndex)
+    advanceItemField()
+    setStatus({
+      text: `Item ${rowIndex + 1}: ${fieldLabel(field.label)} = ${String(value)}.`,
+      kind: 'ok',
+    })
+  }
+
+  function initRecognition(): SpeechRecognitionLike | null {
+    const Ctor = getSpeechRecognitionCtor()
+    if (!Ctor) {
+      setStatus({ text: 'Reconhecimento de voz indisponível neste navegador (use Chrome/Edge).', kind: 'error' })
+      return null
+    }
+    const recognition = new Ctor()
+    recognition.lang = 'pt-BR'
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    recognition.onstart = () => {
+      setListening(true)
+      startedAtRef.current = Date.now()
+      hadResultRef.current = false
+      setStatus({ text: 'Ouvindo…', kind: 'ok' })
+    }
+
+    recognition.onresult = (event) => {
+      let interim = ''
+      let finalText = ''
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i]
+        const piece = result[0]?.transcript || ''
+        if (result.isFinal) finalText += `${piece} `
+        else interim += piece
+      }
+      setInterimText(interim.trim())
+      if (finalText.trim()) {
+        hadResultRef.current = true
+        retryRef.current = 0
+        setInterimText('')
+        applySpeechResult(finalText.trim(), targetRef.current)
+      }
+    }
+
+    recognition.onerror = (event) => {
+      setListening(false)
+      if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+        autoListenRef.current = false
+        setAutoListen(false)
+        setStatus({
+          text: 'Microfone bloqueado. Libere a permissão do site e toque em Ditar novamente.',
+          kind: 'error',
+        })
+      }
+    }
+
+    recognition.onend = () => {
+      setListening(false)
+      const endedQuickly = Date.now() - startedAtRef.current < 1800
+      if (
+        autoListenRef.current &&
+        endedQuickly &&
+        !hadResultRef.current &&
+        retryRef.current < 1
+      ) {
+        retryRef.current += 1
+        recognitionRef.current = initRecognition()
+        try {
+          recognitionRef.current?.start()
+        } catch {
+          /* ignore */
+        }
+        return
+      }
+      if (autoListenRef.current) {
+        setStatus({
+          text: 'Escuta pausada pelo navegador. Toque em Ditar para ouvir novamente.',
+          kind: 'error',
+        })
+        autoListenRef.current = false
+        setAutoListen(false)
+      }
+    }
+
+    return recognition
+  }
+
+  function stopListening() {
+    autoListenRef.current = false
+    setAutoListen(false)
+    retryRef.current = 0
+    setInterimText('')
+    try {
+      recognitionRef.current?.stop()
+    } catch {
+      /* ignore */
+    }
+    setListening(false)
+  }
+
+  function startListening(target: DictationTarget) {
+    if (!getSpeechRecognitionCtor()) {
+      setStatus({ text: 'Reconhecimento de voz indisponível neste navegador (use Chrome/Edge).', kind: 'error' })
+      return
+    }
+    if (target === 'item' && !dictatableItemFields.length) {
+      setStatus({ text: 'Sem campos para ditar neste modelo.', kind: 'error' })
+      return
+    }
+    if (target === 'footer' && !conditionsFields.length) {
+      setStatus({ text: 'Sem condições para ditar.', kind: 'error' })
+      return
+    }
+
+    if (targetRef.current !== target) retryRef.current = 0
+    targetRef.current = target
+    setDictationTarget(target)
+    autoListenRef.current = true
+    setAutoListen(true)
+    hadResultRef.current = false
+    setInterimText('')
+
+    if (!recognitionRef.current) recognitionRef.current = initRecognition()
+    if (!recognitionRef.current) return
+
+    if (listening && dictationTarget === target) return
+
+    try {
+      recognitionRef.current.start()
+    } catch {
+      recognitionRef.current = initRecognition()
+      try {
+        recognitionRef.current?.start()
+      } catch {
+        setStatus({
+          text: 'Não consegui iniciar a escuta. Toque em Ditar novamente e confira o microfone.',
+          kind: 'error',
+        })
+        autoListenRef.current = false
+        setAutoListen(false)
+      }
+    }
+  }
+
+  function toggleDictation(target: DictationTarget) {
+    if (autoListen && dictationTarget === target) stopListening()
+    else startListening(target)
   }
 
   async function handleSave() {
@@ -250,54 +553,8 @@ export default function App() {
     }
   }
 
-  function startDictation() {
-    const Ctor = getSpeechRecognition()
-    if (!Ctor) {
-      setStatus({ text: 'Reconhecimento de voz indisponível neste navegador.', kind: 'error' })
-      return
-    }
-    const editable = fields.filter((f) => !f.calculated && !f.locked)
-    if (!editable.length || !rows.length) return
-    const rowIndex = Math.min(Math.max(activeRowIndex, 0), rows.length - 1)
-    const currentKey =
-      activeFieldKey && editable.some((f) => f.key === activeFieldKey)
-        ? activeFieldKey
-        : editable[0].key
-    setActiveFieldKey(currentKey)
-    setActiveRowIndex(rowIndex)
-
-    const recognition = new Ctor()
-    recognition.lang = 'pt-BR'
-    recognition.continuous = false
-    recognition.interimResults = false
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((r) => r[0].transcript)
-        .join(' ')
-        .trim()
-      if (!transcript) return
-      updateRow(rowIndex, currentKey, transcript)
-      const idx = editable.findIndex((f) => f.key === currentKey)
-      const next = editable[(idx + 1) % editable.length]
-      setActiveFieldKey(next.key)
-      setStatus({
-        text: `Item ${rowIndex + 1}: gravado em ${fieldLabel(editable[idx].label)}. Próximo: ${fieldLabel(next.label)}.`,
-        kind: 'ok',
-      })
-    }
-    recognition.onerror = () => setListening(false)
-    recognition.onend = () => setListening(false)
-    try {
-      recognition.start()
-      setListening(true)
-      setStatus({
-        text: `Ouvindo item ${rowIndex + 1}: ${fieldLabel(editable.find((f) => f.key === currentKey)!.label)}`,
-        kind: 'ok',
-      })
-    } catch {
-      setStatus({ text: 'Não foi possível iniciar o microfone.', kind: 'error' })
-    }
-  }
+  const itemListening = autoListen && dictationTarget === 'item'
+  const footerListening = autoListen && dictationTarget === 'footer'
 
   return (
     <div className="app-shell">
@@ -311,8 +568,8 @@ export default function App() {
         </div>
       </div>
       <p className="lede">
-        Preencha os itens na tabela (colunas lado a lado), como na planilha original — com cálculo de
-        peso, fator, frete e IPI.
+        Preencha por voz ou na tabela — diga o valor do campo atual, “pular” para avançar, ou “nova
+        linha” para o próximo item.
       </p>
 
       {model.status === 'pending' && (
@@ -354,24 +611,55 @@ export default function App() {
         </div>
       </section>
 
+      <section className="card voice-panel" aria-label="Ditado dos itens">
+        <button
+          type="button"
+          className={`mic-button ${itemListening ? 'listening' : ''}`}
+          onClick={() => toggleDictation('item')}
+        >
+          <span className="mic-glyph">
+            <MicIcon />
+          </span>
+          <span>{itemListening ? 'Ouvindo orçamento' : 'Ditar orçamento'}</span>
+        </button>
+        <div className="dictation-current">
+          <span>Campo atual · item {safeRowIndex + 1}</span>
+          <strong>{currentItemField ? fieldLabel(currentItemField.label) : 'Sem campos'}</strong>
+          <div className="field-nav">
+            <button
+              type="button"
+              className="nav-button"
+              aria-label="Campo anterior"
+              onClick={() => setItemStepIndex((i) => i - 1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="nav-button"
+              aria-label="Próximo campo"
+              onClick={() => setItemStepIndex((i) => i + 1)}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+        {interimText && <p className="interim">“…{interimText}”</p>}
+        <p className="voice-hint">
+          Dicas: “304”, “tipo 430”, “pular”, “nova linha”. Funciona melhor no Chrome/Edge com microfone
+          liberado.
+        </p>
+      </section>
+
       <section className="card table-card">
         <div className="section-heading">
           <h2>Itens</h2>
           <div className="actions">
-            <button type="button" className="btn btn-secondary" onClick={startDictation}>
-              {listening ? 'Ouvindo…' : 'Ditar orçamento'}
-            </button>
-            <button type="button" className="btn btn-primary" onClick={addItem}>
+            <button type="button" className="btn btn-primary" onClick={() => addItem(true)}>
               + Adicionar item
             </button>
           </div>
         </div>
-        {activeFieldKey && (
-          <p className="mic-row hint">
-            Ditado: item {Math.min(activeRowIndex, rows.length - 1) + 1} ·{' '}
-            {fieldLabel(fields.find((f) => f.key === activeFieldKey)?.label || activeFieldKey)}
-          </p>
-        )}
 
         <div className="table-scroll">
           <table className="items-table">
@@ -392,7 +680,7 @@ export default function App() {
             <tbody>
               {rows.map((row, index) => {
                 const calc = calculateRow(modelId, row, conditions)
-                const isActive = index === activeRowIndex
+                const isActive = index === safeRowIndex
                 return (
                   <tr
                     key={index}
@@ -416,13 +704,15 @@ export default function App() {
                     {fields.map((field) => {
                       const value =
                         field.calculated && field.calc ? calc[field.calc] : row[field.key]
+                      const isDictationCell =
+                        itemListening && isActive && currentItemField?.key === field.key
                       return (
                         <td
                           key={field.key}
                           className={[
                             field.type === 'boolean' ? 'boolean-column' : '',
                             field.calculated ? 'formula-cell' : '',
-                            activeFieldKey === field.key && isActive ? 'dictation-cell' : '',
+                            isDictationCell ? 'dictation-cell' : '',
                           ]
                             .filter(Boolean)
                             .join(' ')}
@@ -432,7 +722,8 @@ export default function App() {
                             value={value}
                             onChange={(v) => {
                               setActiveRowIndex(index)
-                              setActiveFieldKey(field.key)
+                              const step = dictatableItemFields.findIndex((f) => f.key === field.key)
+                              if (step >= 0) setItemStepIndex(step)
                               updateRow(index, field.key, v)
                             }}
                           />
@@ -473,6 +764,41 @@ export default function App() {
         </div>
       </section>
 
+      <section className="card voice-panel footer-voice-panel" aria-label="Ditado das condições">
+        <button
+          type="button"
+          className={`mic-button ${footerListening ? 'listening' : ''}`}
+          onClick={() => toggleDictation('footer')}
+        >
+          <span className="mic-glyph">
+            <MicIcon />
+          </span>
+          <span>{footerListening ? 'Ouvindo condições' : 'Ditar condições'}</span>
+        </button>
+        <div className="dictation-current">
+          <span>Campo atual</span>
+          <strong>{currentFooterField ? fieldLabel(currentFooterField.label) : 'Sem campos'}</strong>
+          <div className="field-nav">
+            <button
+              type="button"
+              className="nav-button"
+              aria-label="Campo anterior"
+              onClick={() => setFooterStepIndex((i) => i - 1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="nav-button"
+              aria-label="Próximo campo"
+              onClick={() => setFooterStepIndex((i) => i + 1)}
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      </section>
+
       <section className="card">
         <h2>Condições</h2>
         <div className="grid-2">
@@ -481,7 +807,12 @@ export default function App() {
               key={field.key}
               field={field}
               value={conditions[field.key]}
-              onChange={(v) => updateCondition(field.key, v as string | number)}
+              highlighted={footerListening && currentFooterField?.key === field.key}
+              onChange={(v) => {
+                const step = conditionsFields.findIndex((f) => f.key === field.key)
+                if (step >= 0) setFooterStepIndex(step)
+                updateCondition(field.key, v)
+              }}
             />
           ))}
         </div>

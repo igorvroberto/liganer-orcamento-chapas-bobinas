@@ -1,4 +1,4 @@
-import type { BudgetRecord } from './types'
+import type { BudgetRecord, Conditions, ItemRow } from './types'
 
 const STORAGE_KEY = 'liganer-orcamento-draft-v1'
 const SAVED_KEY = 'liganer-orcamento-saved-v1'
@@ -24,8 +24,8 @@ function setItem(key: string, value: string): void {
 export type DraftState = {
   modelId: string
   client: { name: string; cnpj: string }
-  rowsByModel: Record<string, Record<string, string | number | boolean | undefined>[]>
-  draftsByModel: Record<string, Record<string, string | number | undefined>>
+  rowsByModel: Record<string, ItemRow[]>
+  draftsByModel: Record<string, Conditions>
 }
 
 export function loadDraft(): DraftState | null {
