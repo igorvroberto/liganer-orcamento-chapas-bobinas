@@ -53,6 +53,7 @@ URL pública: `https://vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bob
 
 - Substitua só esse arquivo no FTP e dê hard-refresh nos apps — sem rebuild.
 - O build deste repo só regenera o JSON de fallback embutido (`npm run sync:prices`).
+- Tipo, acabamento, PVC e espessura do formulário vêm dos valores/colunas dessa planilha.
 
 ### Primeira publicação
 
