@@ -36,8 +36,9 @@ Prefira **FTPS**. Se o HostGator só aceitar FTP puro, edite `.github/workflows/
 ### Primeira publicação
 
 1. Confirme que a pasta `bobinas-chapas` existe no servidor (File Manager).
-2. Merge do PR / push na `main`, ou **Actions → Deploy… → Run workflow**.
-3. No servidor, crie/edite **apenas no host** o `config.json` (o deploy **não sobrescreve** esse arquivo):
+2. Crie **uma vez** no host a pasta `bobinas-chapas/data/` (gravável pelo PHP). O Action **não** cria nem sobrescreve `data/`.
+3. Merge do PR / push na `main`, ou **Actions → Deploy… → Run workflow**.
+4. No servidor, crie/edite **apenas no host** o `config.json` (o deploy **não sobrescreve** esse arquivo):
 
 ```json
 {
@@ -45,8 +46,6 @@ Prefira **FTPS**. Se o HostGator só aceitar FTP puro, edite `.github/workflows/
   "syncSecret": "SEU_SEGREDO_FORTE"
 }
 ```
-
-4. Garanta que `bobinas-chapas/data/` seja gravável pelo PHP.
 
 ### O que o Action envia
 

@@ -30,11 +30,11 @@ jobs:
 
       - name: Prepare publish folder
         run: |
-          mkdir -p dist/api dist/data
+          mkdir -p dist/api
           cp deploy/api/budgets.php dist/api/budgets.php
-          # Mantém pasta data no servidor; não sobrescreve config.json remoto.
+          # Não publica config.json nem pasta data/ (criada uma vez no host).
           rm -f dist/config.json
-          printf '%s\n' 'Placeholder — pasta de orçamentos salvos pela API.' > dist/data/.gitkeep
+          rm -rf dist/data
 
       - name: Deploy via FTP/FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
@@ -52,4 +52,3 @@ jobs:
             **/.git*/**
             **/config.json
             **/data/**
-            !**/data/.gitkeep
