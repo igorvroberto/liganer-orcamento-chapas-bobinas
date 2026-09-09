@@ -21,29 +21,40 @@ export function percentRate(value: unknown): number {
 /** Densidade padrão usada no plugin legado (kg/mm³ efetiva via fator 8). */
 const STEEL_FACTOR = 8
 
+/** Bobina: peso manual. Chapa: peso pela fórmula. Sem material, cai no padrão do modelo. */
+export function usesManualUnitWeight(modelId: string, row: ItemRow): boolean {
+  const material = String(row.material ?? '')
+    .trim()
+    .toUpperCase()
+  if (material === 'BOBINA') return true
+  if (material === 'CHAPA') return false
+  return modelId === 'bobinas' || modelId === 'slitters_fitas'
+}
+
+export function sheetUnitWeight(row: ItemRow): number {
+  const espessura = numericValue(row.espessura)
+  const largura = numericValue(row.largura)
+  const comprimento = numericValue(row.comprimento)
+  return STEEL_FACTOR * espessura * (largura / 1000) * (comprimento / 1000)
+}
+
 export function calculateRow(
   modelId: string,
   row: ItemRow,
   conditions: Conditions,
 ): RowCalculation {
-  const espessura = numericValue(row.espessura)
-  const largura = numericValue(row.largura)
-  const comprimento = numericValue(row.comprimento)
   const unidade = numericValue(row.unidade)
   const fatorUtilizado = numericValue(row.fator_utilizado)
   const precoFator100 = numericValue(row.preco_fator_100 ?? row.preco)
   const precoBobinaFator100 = numericValue(row.preco_bobina_fator_100)
   const precoServico = numericValue(row.preco_servico)
+  const largura = numericValue(row.largura)
   const larguraBobina = numericValue(row.largura_bobina)
   const frete = percentRate(conditions.frete_percentual)
 
-  const isCoilWeightModel = modelId === 'bobinas' || modelId === 'slitters_fitas'
-  const pesoUnitario = isCoilWeightModel
-    ? numericValue(row.peso_unitario)
-    : STEEL_FACTOR * espessura * (largura / 1000) * (comprimento / 1000)
-  const pesoTotal = isCoilWeightModel
-    ? unidade * pesoUnitario
-    : unidade * STEEL_FACTOR * espessura * (largura / 1000) * (comprimento / 1000)
+  const manualWeight = usesManualUnitWeight(modelId, row)
+  const pesoUnitario = manualWeight ? numericValue(row.peso_unitario) : sheetUnitWeight(row)
+  const pesoTotal = unidade * pesoUnitario
 
   const precoFatorUtilizado = fatorUtilizado ? precoFator100 / (fatorUtilizado / 100) : 0
   const precoBobinaFatorUtilizado = fatorUtilizado

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { calculateRow, calculateSummary } from './lib/calc'
+import { calculateRow, calculateSummary, numericValue, sheetUnitWeight, usesManualUnitWeight } from './lib/calc'
 import { exportCsv, exportExcel, exportPdf } from './lib/export'
 import {
   displayFieldValue,
@@ -47,16 +47,26 @@ function MicIcon() {
   )
 }
 
+function isCalculatedForRow(field: FieldDef, modelId: string, row: ItemRow): boolean {
+  if (field.calculated) return true
+  if (field.weightByMaterial) return !usesManualUnitWeight(modelId, row)
+  return false
+}
+
 function CellControl({
   field,
   value,
+  modelId,
+  row,
   onChange,
 }: {
   field: FieldDef
   value: string | number | boolean | undefined
+  modelId: string
+  row: ItemRow
   onChange: (value: string | number | boolean) => void
 }) {
-  if (field.calculated) {
+  if (isCalculatedForRow(field, modelId, row)) {
     return <span className="calculated-cell">{displayFieldValue(value, field)}</span>
   }
 
@@ -201,12 +211,17 @@ export default function App() {
   const model = getModel(modelId)
   const fields = itemFields(model)
   const conditionsFields = footerFields(model)
-  const dictatableItemFields = fields.filter((f) => !f.calculated && !f.locked && !f.hiddenInApp)
   const rows = rowsByModel[modelId] || []
   const conditions = draftsByModel[modelId] || {}
   const summary = calculateSummary(modelId, rows, conditions)
 
   const safeRowIndex = rows.length ? Math.min(Math.max(activeRowIndex, 0), rows.length - 1) : 0
+  const activeRow = rows[safeRowIndex] || {}
+  const dictatableItemFields = fields.filter((f) => {
+    if (f.hiddenInApp || f.calculated || f.locked) return false
+    if (f.weightByMaterial && isCalculatedForRow(f, modelId, activeRow)) return false
+    return true
+  })
   const safeItemStep = dictatableItemFields.length
     ? ((itemStepIndex % dictatableItemFields.length) + dictatableItemFields.length) %
       dictatableItemFields.length
@@ -262,7 +277,16 @@ export default function App() {
   function updateRow(index: number, key: string, value: string | number | boolean) {
     setRowsByModel((prev) => {
       const list = [...(prev[modelId] || [])]
-      list[index] = { ...list[index], [key]: value }
+      const previous = list[index] || {}
+      const nextRow: ItemRow = { ...previous, [key]: value }
+      if (key === 'material' && String(value).toUpperCase() === 'BOBINA') {
+        // Ao mudar para bobina, sugere o peso calculado da chapa se ainda não houver peso manual.
+        const suggested = sheetUnitWeight({ ...nextRow, material: 'CHAPA' })
+        if (!numericValue(previous.peso_unitario) && suggested > 0) {
+          nextRow.peso_unitario = Number(suggested.toFixed(3))
+        }
+      }
+      list[index] = nextRow
       return { ...prev, [modelId]: list }
     })
   }
@@ -337,7 +361,16 @@ export default function App() {
 
     const snap = stateRef.current
     const modelNow = getModel(snap.modelId)
-    const itemFs = itemFields(modelNow).filter((f) => !f.calculated && !f.locked && !f.hiddenInApp)
+    const rowsNow = snap.rowsByModel[snap.modelId] || []
+    let rowIndex = rowsNow.length
+      ? Math.min(Math.max(snap.activeRowIndex, 0), rowsNow.length - 1)
+      : 0
+    const rowForDictation = rowsNow[rowIndex] || emptyRowDefaults(itemFields(modelNow))
+    const itemFs = itemFields(modelNow).filter((f) => {
+      if (f.hiddenInApp || f.calculated || f.locked) return false
+      if (f.weightByMaterial && isCalculatedForRow(f, snap.modelId, rowForDictation)) return false
+      return true
+    })
     const footerFs = footerFields(modelNow)
 
     if (target === 'footer') {
@@ -357,10 +390,6 @@ export default function App() {
     }
 
     if (!itemFs.length) return
-    const rowsNow = snap.rowsByModel[snap.modelId] || []
-    let rowIndex = rowsNow.length
-      ? Math.min(Math.max(snap.activeRowIndex, 0), rowsNow.length - 1)
-      : 0
     if (!rowsNow.length) {
       addItem(true)
       rowIndex = 0
@@ -702,8 +731,11 @@ export default function App() {
                     </td>
                     <td className="item-number-cell">{index + 1}</td>
                     {fields.map((field) => {
-                      const value =
-                        field.calculated && field.calc ? calc[field.calc] : row[field.key]
+                      const value = isCalculatedForRow(field, modelId, row)
+                        ? field.calc
+                          ? calc[field.calc]
+                          : row[field.key]
+                        : row[field.key]
                       const isDictationCell =
                         itemListening && isActive && currentItemField?.key === field.key
                       return (
@@ -711,7 +743,7 @@ export default function App() {
                           key={field.key}
                           className={[
                             field.type === 'boolean' ? 'boolean-column' : '',
-                            field.calculated ? 'formula-cell' : '',
+                            isCalculatedForRow(field, modelId, row) ? 'formula-cell' : '',
                             isDictationCell ? 'dictation-cell' : '',
                           ]
                             .filter(Boolean)
@@ -720,6 +752,8 @@ export default function App() {
                           <CellControl
                             field={field}
                             value={value}
+                            modelId={modelId}
+                            row={row}
                             onChange={(v) => {
                               setActiveRowIndex(index)
                               const step = dictatableItemFields.findIndex((f) => f.key === field.key)

@@ -10,6 +10,7 @@ export const THICKNESS_OPTIONS = [
 export const ICMS_OPTIONS = ['4%', '12%']
 export const COMMISSION_OPTIONS = ['Bonificada', 'Normal', 'Reduzida']
 export const COIL_TYPE_OPTIONS = ['Inteira', 'Cortada', 'Com PVC']
+export const MATERIAL_CHAPA_BOBINA = ['CHAPA', 'BOBINA']
 
 function calcField(
   key: string,
@@ -62,9 +63,28 @@ function footerFieldsModule(): FieldDef[] {
   ]
 }
 
-function alloyFields(materialDefault: string): FieldDef[] {
+function alloyFields(
+  materialDefault: string,
+  { selectableChapaBobina = false }: { selectableChapaBobina?: boolean } = {},
+): FieldDef[] {
+  const materialField: FieldDef = selectableChapaBobina
+    ? {
+        key: 'material',
+        label: 'Material',
+        aliases: ['material', 'produto'],
+        options: MATERIAL_CHAPA_BOBINA,
+        default: materialDefault,
+        askWhenNew: true,
+      }
+    : {
+        key: 'material',
+        label: 'Material',
+        aliases: ['material', 'produto'],
+        default: materialDefault,
+        locked: true,
+      }
   return [
-    { key: 'material', label: 'Material', aliases: ['material', 'produto'], default: materialDefault, locked: true },
+    materialField,
     { key: 'tipo', label: 'Tipo', aliases: ['tipo', 'liga', 'aco', 'aço'], options: TYPE_OPTIONS, askWhenNew: true },
     { key: 'acabamento', label: 'Acabamento', aliases: ['acabamento'], options: FINISH_OPTIONS, askWhenNew: true },
     { key: 'pvc', label: 'PVC', aliases: ['pvc', 'plastico', 'plástico'], options: PVC_OPTIONS, askWhenNew: true },
@@ -77,6 +97,17 @@ function alloyFields(materialDefault: string): FieldDef[] {
       askWhenNew: true,
     },
   ]
+}
+
+function pesoUnitarioField(): FieldDef {
+  return {
+    key: 'peso_unitario',
+    label: 'Peso\nunitário',
+    aliases: ['peso unitario', 'peso unitário'],
+    type: 'number',
+    weightByMaterial: true,
+    calc: 'pesoUnitario',
+  }
 }
 
 function commercialFields({ coil = false }: { coil?: boolean } = {}): FieldDef[] {
@@ -161,11 +192,11 @@ export const MODELS: ModelDef[] = [
     sheet: 'Orçamento',
     rowRange: '3 a 12',
     fields: [
-      ...alloyFields('CHAPA'),
+      ...alloyFields('CHAPA', { selectableChapaBobina: true }),
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
       { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd', 'peças', 'pecas'], type: 'number' },
-      calcField('_peso_unitario', 'Peso\nunitário', 'number', 'pesoUnitario'),
+      pesoUnitarioField(),
       calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal'),
       { key: 'um', label: 'UM', aliases: ['um', 'unidade medida'], default: 'KG', hiddenInApp: true },
       calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
@@ -184,10 +215,11 @@ export const MODELS: ModelDef[] = [
     name: 'Bobinas',
     status: 'configured',
     fields: [
-      ...alloyFields('BOBINA'),
+      ...alloyFields('BOBINA', { selectableChapaBobina: true }),
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
+      { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd'], type: 'number' },
-      { key: 'peso_unitario', label: 'Peso\nunitário', aliases: ['peso unitario', 'peso unitário'], type: 'number' },
+      pesoUnitarioField(),
       calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal'),
       { key: 'um', label: 'UM', aliases: ['um'], default: 'KG', hiddenInApp: true },
       calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
