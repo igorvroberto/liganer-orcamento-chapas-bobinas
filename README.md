@@ -58,3 +58,7 @@ Ver [deploy/README.md](deploy/README.md).
 ## Legado
 
 A pasta `legado/` guarda o plugin WordPress original (`orcamento-liganer`) que hoje roda em https://liganer.com.br/orcamento-liganer/ — referência das regras de negócio.
+
+## Fluxo de contribuição
+
+Alterações entram via **pull request** (sem push direto na `main` pelo agent).
