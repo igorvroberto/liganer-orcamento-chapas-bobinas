@@ -5,12 +5,12 @@ App interno de orçamento comercial da Liganer, no mesmo padrão dos sistemas em
 - https://vendas.liganer.com.br/blanks/
 - https://vendas.liganer.com.br/prospeccao/
 
-Destino de publicação: **https://vendas.liganer.com.br/bobinas-chapas/**
+Destino de publicação: **https://vendas.liganer.com.br/orcamento/chapas-bobinas/**
 
 ## Stack
 
 - Vite + React + TypeScript
-- Base path `/bobinas-chapas/`
+- Base path `/orcamento/chapas-bobinas/`
 - Cálculos e modelos portados do plugin WordPress legado (`legado/`)
 - Persistência local (`localStorage`) + API PHP opcional (`deploy/api/budgets.php`)
 
@@ -21,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Em dev o Vite serve em `/bobinas-chapas/` (veja `vite.config.ts`).
+Em dev o Vite serve em `/orcamento/chapas-bobinas/` (veja `vite.config.ts`).
 
 ## Build
 
@@ -30,12 +30,13 @@ npm run build
 npm run preview
 ```
 
-O `prebuild` sincroniza a planilha de preços (`legado/precos-bobinas-chapas.xlsx` → `public/` + JSON de fallback). Em produção o app lê o Excel em `/bobinas-chapas/precos-bobinas-chapas.xlsx` automaticamente.
+O `prebuild` sincroniza a planilha de preços (`legado/precos-bobinas-chapas.xlsx` → `public/` + JSON de fallback). Em produção o app lê o Excel em `/orcamento/chapas-bobinas/precos-bobinas-chapas.xlsx` automaticamente.
 
 ## Atualizar preços
 
 1. Envie/substitua `legado/precos-bobinas-chapas.xlsx` (mesmas colunas).
 2. Commit + merge/deploy — ou, no HostGator, troque só `precos-bobinas-chapas.xlsx` e dê hard-refresh.
+
 ## Funcionalidades
 
 - Modelo único de chapas e bobinas (material selecionável)
