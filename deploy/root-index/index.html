@@ -7,15 +7,15 @@
     <title>Liganer Vendas</title>
     <style>
       :root {
-        --bg: #eef1f4;
+        --bg: #f5f7f4;
         --paper: #ffffff;
-        --ink: #1b242c;
-        --muted: #5b6773;
-        --brand: #16384a;
-        --brand-2: #1f6f8b;
-        --line: #d5dde4;
-        --shadow: 0 18px 40px rgba(22, 56, 74, 0.08);
-        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        --ink: #17211d;
+        --muted: #56635d;
+        --brand: #c60000;
+        --brand-2: #c60000;
+        --line: #d8dfd9;
+        --shadow: 0 16px 40px rgba(20, 37, 31, 0.11);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       * {
@@ -27,7 +27,7 @@
         min-height: 100vh;
         color: var(--ink);
         background:
-          radial-gradient(1200px 400px at 10% -10%, rgba(31, 111, 139, 0.12), transparent),
+          linear-gradient(180deg, rgba(198, 0, 0, 0.08), transparent 260px),
           var(--bg);
       }
 
@@ -40,8 +40,8 @@
       .hero,
       .apps {
         background: var(--paper);
-        border: 1px solid var(--line);
-        border-radius: 20px;
+        border: 1px solid rgba(216, 223, 217, 0.9);
+        border-radius: 8px;
         box-shadow: var(--shadow);
       }
 
@@ -51,10 +51,9 @@
 
       .eyebrow {
         margin: 0 0 10px;
-        color: var(--brand-2);
-        font-size: 0.78rem;
+        color: var(--brand);
+        font-size: 0.76rem;
         font-weight: 800;
-        letter-spacing: 0.08em;
         text-transform: uppercase;
       }
 
@@ -62,7 +61,7 @@
         margin: 0;
         font-size: clamp(1.9rem, 4vw, 2.7rem);
         line-height: 1.08;
-        color: var(--brand);
+        color: var(--ink);
       }
 
       .lede {
@@ -87,8 +86,8 @@
         display: block;
         padding: 18px;
         border: 1px solid var(--line);
-        border-radius: 16px;
-        background: linear-gradient(180deg, #fff, #f8fafb);
+        border-radius: 8px;
+        background: linear-gradient(180deg, #fff, #fbfbf7);
         color: inherit;
         text-decoration: none;
         transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
@@ -97,8 +96,8 @@
       .app-link:hover,
       .app-link:focus-visible {
         transform: translateY(-2px);
-        border-color: rgba(31, 111, 139, 0.35);
-        box-shadow: 0 14px 28px rgba(22, 56, 74, 0.08);
+        border-color: rgba(198, 0, 0, 0.35);
+        box-shadow: 0 14px 28px rgba(20, 37, 31, 0.08);
         outline: none;
       }
 

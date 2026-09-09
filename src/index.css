@@ -1,20 +1,24 @@
 :root {
-  --bg: #eef1f4;
-  --bg-accent: #e4e9ee;
+  --bg: #f5f7f4;
+  --bg-accent: #eef2ef;
   --paper: #ffffff;
-  --ink: #1b242c;
-  --muted: #5b6773;
-  --line: #d5dde4;
-  --brand: #16384a;
-  --brand-2: #1f6f8b;
-  --accent: #c45c26;
+  --panel-warm: #fbfbf7;
+  --ink: #17211d;
+  --muted: #56635d;
+  --line: #d8dfd9;
+  --brand: #c60000;
+  --brand-2: #c60000;
+  --accent: #c60000;
+  --accent-light: #fce8e8;
+  --accent-dark: #c60000;
   --good: #2d6a4f;
   --good-bg: #e7f4ec;
-  --warn: #9a6b12;
-  --danger: #9f1239;
-  --shadow: 0 18px 40px rgba(22, 56, 74, 0.08);
-  --radius: 18px;
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --warn: #4f3b00;
+  --warn-bg: #fff8db;
+  --danger: #b42318;
+  --shadow: 0 16px 40px rgba(20, 37, 31, 0.11);
+  --radius: 8px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: var(--ink);
   background: var(--bg);
   line-height: 1.4;
@@ -31,7 +35,7 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(1200px 400px at 10% -10%, rgba(31, 111, 139, 0.12), transparent),
+    linear-gradient(180deg, rgba(198, 0, 0, 0.08), transparent 260px),
     var(--bg);
 }
 
@@ -66,8 +70,8 @@ button {
 .brand-mark {
   width: 42px;
   height: 42px;
-  border-radius: 10px;
-  background: var(--brand);
+  border-radius: 8px;
+  background: var(--accent);
   color: #fff;
   display: grid;
   place-items: center;
@@ -78,10 +82,9 @@ button {
 
 .eyebrow {
   margin: 0;
-  color: var(--brand-2);
-  font-size: 0.72rem;
+  color: var(--accent-dark);
+  font-size: 0.76rem;
   font-weight: 800;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -115,7 +118,7 @@ h1 {
   gap: 8px;
   min-height: 126px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 8px;
   background: var(--accent);
   color: #fff;
   font-weight: 800;
@@ -123,17 +126,17 @@ h1 {
 }
 
 .mic-button.listening {
-  background: #9f1239;
+  background: var(--danger);
   animation: pulse-mic 1.4s ease-in-out infinite;
 }
 
 @keyframes pulse-mic {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(159, 18, 57, 0.35);
+    box-shadow: 0 0 0 0 rgba(198, 0, 0, 0.35);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(159, 18, 57, 0);
+    box-shadow: 0 0 0 10px rgba(198, 0, 0, 0);
   }
 }
 
@@ -186,9 +189,9 @@ h1 {
   width: 40px;
   height: 36px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #f7f9fb;
-  color: var(--brand);
+  border-radius: 8px;
+  background: var(--panel-warm);
+  color: var(--ink);
   font-size: 1.25rem;
   font-weight: 700;
 }
@@ -196,7 +199,7 @@ h1 {
 .interim {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--brand-2);
+  color: var(--accent-dark);
   font-style: italic;
 }
 
@@ -209,13 +212,13 @@ h1 {
 
 .field-listening input,
 .field-listening select {
-  outline: 2px solid rgba(196, 92, 38, 0.45);
+  outline: 3px solid rgba(198, 0, 0, 0.16);
   border-color: var(--accent);
 }
 
 .card {
   background: var(--paper);
-  border: 1px solid rgba(213, 221, 228, 0.95);
+  border: 1px solid rgba(216, 223, 217, 0.9);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
@@ -256,8 +259,8 @@ select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f7f9fb;
+  border-radius: 8px;
+  background: var(--panel-warm);
   color: var(--ink);
   padding: 10px 12px;
 }
@@ -265,15 +268,15 @@ textarea {
 input:focus,
 select:focus,
 textarea:focus {
-  outline: 2px solid rgba(31, 111, 139, 0.25);
-  border-color: var(--brand-2);
+  outline: 3px solid rgba(198, 0, 0, 0.16);
+  border-color: var(--accent);
   background: #fff;
 }
 
 input:disabled,
 select:disabled {
-  color: var(--muted);
-  background: #eef2f5;
+  color: #66726d;
+  background: #eef2ef;
 }
 
 .field.boolean {
@@ -288,16 +291,16 @@ select:disabled {
 .toggle-row button {
   flex: 1;
   border: 1px solid var(--line);
-  background: #f7f9fb;
-  border-radius: 999px;
+  background: var(--panel-warm);
+  border-radius: 8px;
   padding: 9px 10px;
   color: var(--muted);
   font-weight: 700;
 }
 
 .toggle-row button.active {
-  background: var(--brand);
-  border-color: var(--brand);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -321,7 +324,7 @@ select:disabled {
 
 .btn {
   border: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   padding: 10px 14px;
   font-weight: 700;
 }
@@ -332,17 +335,18 @@ select:disabled {
 }
 
 .btn-dark {
-  background: var(--brand);
+  background: var(--ink);
   color: #fff;
 }
 
 .btn-secondary {
-  background: #e8eef2;
-  color: var(--brand);
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink);
 }
 
 .btn-danger {
-  background: #fde8ee;
+  background: #fff1f0;
   color: var(--danger);
 }
 
@@ -358,7 +362,7 @@ select:disabled {
 .table-scroll {
   overflow-x: auto;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
 }
 
@@ -379,8 +383,8 @@ select:disabled {
 }
 
 .items-table th {
-  background: #e8f1f5;
-  color: var(--brand);
+  background: var(--accent-light);
+  color: #24312c;
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -399,7 +403,7 @@ select:disabled {
 }
 
 .items-table td.formula-cell {
-  background: #f3f8fb;
+  background: var(--accent-light);
 }
 
 .items-table .delete-column,
@@ -419,7 +423,7 @@ select:disabled {
 .calculated-cell {
   display: inline-block;
   min-width: 72px;
-  color: var(--brand-2);
+  color: var(--accent-dark);
   font-weight: 800;
   font-size: 0.86rem;
 }
@@ -442,14 +446,14 @@ select:disabled {
 }
 
 .cell-control:disabled {
-  background: #eef2f5;
-  color: var(--muted);
+  background: #eef2ef;
+  color: #66726d;
 }
 
 .cell-check {
   width: 18px;
   height: 18px;
-  accent-color: var(--brand);
+  accent-color: var(--accent);
 }
 
 .trash-button {
@@ -467,12 +471,12 @@ select:disabled {
 }
 
 .editing-row td {
-  background: rgba(31, 111, 139, 0.06);
+  background: rgba(198, 0, 0, 0.06);
 }
 
 .dictation-cell .cell-control,
 .dictation-cell .cell-check {
-  outline: 2px solid rgba(196, 92, 38, 0.45);
+  outline: 3px solid rgba(198, 0, 0, 0.16);
   border-color: var(--accent);
 }
 
@@ -483,8 +487,8 @@ select:disabled {
 }
 
 .summary-item {
-  background: #f4f7f9;
-  border-radius: 12px;
+  background: #eef2ef;
+  border-radius: 8px;
   padding: 12px;
 }
 
@@ -515,9 +519,10 @@ select:disabled {
 }
 
 .notice {
-  background: #fff7ed;
+  background: var(--warn-bg);
   color: var(--warn);
-  border-radius: 12px;
+  border: 1px solid #f2c94c;
+  border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 12px;
   font-size: 0.9rem;
