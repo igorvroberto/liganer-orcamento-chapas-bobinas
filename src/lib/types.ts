@@ -53,6 +53,8 @@ export type RowCalculation = {
   perdaPercentual: number
   acrescimoPerdaPercentual: number
   acrescimoPerdaValor: number
+  /** Alíquota ICMS da planilha (ex.: 0.04 = 4%). */
+  icms: number
 }
 
 export type Summary = {

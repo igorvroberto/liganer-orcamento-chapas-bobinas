@@ -1,3 +1,4 @@
+import { lookupCatalogPrice, usesPriceCatalog } from './priceCatalog'
 import type { Conditions, ItemRow, RowCalculation, Summary } from './types'
 
 export function numericValue(value: unknown): number {
@@ -57,12 +58,15 @@ export function calculateRow(
 ): RowCalculation {
   const unidade = numericValue(row.unidade)
   const fatorUtilizado = numericValue(row.fator_utilizado)
-  const precoFator100 = numericValue(row.preco_fator_100 ?? row.preco)
-  const precoBobinaFator100 = numericValue(row.preco_bobina_fator_100)
+  const catalog = usesPriceCatalog(modelId) ? lookupCatalogPrice(row) : null
+  const catalogPrice = catalog?.precoFator100 ?? 0
+  const precoFator100 = catalogPrice || numericValue(row.preco_fator_100 ?? row.preco)
+  const precoBobinaFator100 = catalogPrice || numericValue(row.preco_bobina_fator_100)
   const precoServico = numericValue(row.preco_servico)
   const largura = numericValue(row.largura)
   const larguraBobina = numericValue(row.largura_bobina)
   const frete = percentRate(conditions.frete_percentual)
+  const icms = catalog?.icms ?? percentRate(row.icms)
 
   const manualWeight = usesManualUnitWeight(modelId, row)
   const pesoUnitario = manualWeight ? numericValue(row.peso_unitario) : sheetUnitWeight(row)
@@ -107,6 +111,7 @@ export function calculateRow(
     perdaPercentual,
     acrescimoPerdaPercentual,
     acrescimoPerdaValor,
+    icms,
   }
 }
 
