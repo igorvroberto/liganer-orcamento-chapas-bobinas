@@ -41,7 +41,7 @@ Há um workflow separado: **Deploy root index to vendas.liganer.com.br**.
 - Destino FTP: `/vendas.liganer.com.br/`
 - Publica apenas o `index.html` da raiz, sem mexer em `/blanks/`, `/orcamento/chapas-bobinas/` e `/prospeccao/`
 
-Use **Actions → Deploy root index to vendas.liganer.com.br → Run workflow** depois do merge.
+Roda automaticamente no push da `main` quando `deploy/root-index/` (ou o próprio workflow) muda. Também dá para disparar em **Actions → Run workflow**.
 
 ### Atualizar preços (planilha Excel)
 
