@@ -84,20 +84,19 @@ function normalizeMaterial(value: unknown): string {
     .toLowerCase()
 }
 
-/** Acabamento do app ESCOVADO = N4 na planilha. */
+/** Acabamento canônico: ESCOVADO (planilha pode vir como N4 legado). */
 export function normalizeAcabamento(value: unknown): string {
   const raw = String(value ?? '')
     .trim()
     .toUpperCase()
     .replace(/\s+/g, '')
-  if (raw === 'ESCOVADO' || raw === 'N4') return 'N4'
+  if (raw === 'ESCOVADO' || raw === 'N4') return 'ESCOVADO'
   return raw
 }
 
-/** Rótulo de UI: N4 na planilha aparece como ESCOVADO. */
+/** Rótulo de UI do acabamento (já canônico). */
 export function displayAcabamentoOption(value: unknown): string {
-  const normalized = normalizeAcabamento(value)
-  return normalized === 'N4' ? 'ESCOVADO' : normalized
+  return normalizeAcabamento(value)
 }
 
 /** Espessura no select no formato pt-BR (ex.: 0,40). */

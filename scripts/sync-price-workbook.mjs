@@ -63,7 +63,7 @@ function normalizeAcabamento(value) {
     .trim()
     .toUpperCase()
     .replace(/\s+/g, '')
-  if (raw === 'ESCOVADO' || raw === 'N4') return 'N4'
+  if (raw === 'ESCOVADO' || raw === 'N4') return 'ESCOVADO'
   return raw
 }
 
