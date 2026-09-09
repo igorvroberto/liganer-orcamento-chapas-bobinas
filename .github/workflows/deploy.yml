@@ -1,4 +1,4 @@
-name: Deploy to vendas.liganer.com.br/orcamento
+name: Deploy to vendas.liganer.com.br/bobinas-chapas
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-orcamento
+  group: deploy-bobinas-chapas
   cancel-in-progress: true
 
 jobs:
