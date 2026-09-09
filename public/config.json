@@ -1,0 +1,6 @@
+{
+  "_comment": "Opcional. Sem syncSecret, orçamentos ficam só no navegador (localStorage). No deploy, injete o segredo como nos outros apps de vendas.",
+  "saveUrl": "",
+  "printNumberUrl": "",
+  "syncSecret": ""
+}

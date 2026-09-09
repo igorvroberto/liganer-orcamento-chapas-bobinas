@@ -1,0 +1,55 @@
+name: Deploy to vendas.liganer.com.br/orcamento
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-orcamento
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Prepare publish folder
+        run: |
+          mkdir -p dist/api dist/data
+          cp deploy/api/budgets.php dist/api/budgets.php
+          # Mantém pasta data no servidor; não sobrescreve config.json remoto.
+          rm -f dist/config.json
+          printf '%s\n' 'Placeholder — pasta de orçamentos salvos pela API.' > dist/data/.gitkeep
+
+      - name: Deploy via FTP/FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/config.json
+            **/data/**
+            !**/data/.gitkeep
