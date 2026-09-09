@@ -13,7 +13,7 @@ export type FieldDef = {
   section?: 'Rodapé'
   virtual?: boolean
   calculated?: boolean
-  /** Peso unitário: calculado/bloqueado para CHAPA, editável para BOBINA */
+  /** Peso unitário: calculado/bloqueado para Chapa, editável para Bobina inteira/reduzida */
   weightByMaterial?: boolean
   calc?: keyof RowCalculation
 }
@@ -53,6 +53,8 @@ export type RowCalculation = {
   perdaPercentual: number
   acrescimoPerdaPercentual: number
   acrescimoPerdaValor: number
+  /** Alíquota ICMS da planilha (ex.: 0.04 = 4%). */
+  icms: number
 }
 
 export type Summary = {

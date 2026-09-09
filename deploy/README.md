@@ -47,12 +47,12 @@ Prefira **FTPS**. Se o HostGator só aceitar FTP puro, edite `.github/workflows/
 }
 ```
 
-### O que o Action envia
+### Atualizar preços (planilha Excel)
 
-- Conteúdo de `dist/` (HTML/JS/CSS do Vite)
-- `api/budgets.php`
-- **Não** apaga o servidor inteiro (`dangerous-clean-slate: false`)
-- **Não** sobrescreve `config.json` nem arquivos em `data/`
+O app carrega `precos-bobinas-chapas.xlsx` ao abrir a página.
+
+- **Via GitHub:** substitua `legado/precos-bobinas-chapas.xlsx`, faça merge — o build copia para `public/` e publica no FTP.
+- **Via FTP direto:** substitua apenas `…/bobinas-chapas/precos-bobinas-chapas.xlsx` no HostGator e faça hard-refresh (sem precisar rebuild), mantendo os mesmos cabeçalhos.
 
 ## Build local
 

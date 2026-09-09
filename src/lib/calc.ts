@@ -1,3 +1,4 @@
+import { lookupCatalogPrice, usesPriceCatalog } from './priceCatalog'
 import type { Conditions, ItemRow, RowCalculation, Summary } from './types'
 
 export function numericValue(value: unknown): number {
@@ -21,13 +22,25 @@ export function percentRate(value: unknown): number {
 /** Densidade padrão usada no plugin legado (kg/mm³ efetiva via fator 8). */
 const STEEL_FACTOR = 8
 
-/** Bobina: peso manual. Chapa: peso pela fórmula. Sem material, cai no padrão do modelo. */
-export function usesManualUnitWeight(modelId: string, row: ItemRow): boolean {
-  const material = String(row.material ?? '')
+/** Bobina (inteira/reduzida): peso manual. Chapa: peso pela fórmula. Sem material, cai no padrão do modelo. */
+export function normalizeMaterial(value: unknown): string {
+  return String(value ?? '')
     .trim()
-    .toUpperCase()
-  if (material === 'BOBINA') return true
-  if (material === 'CHAPA') return false
+    .toLowerCase()
+}
+
+export function isChapaMaterial(row: ItemRow): boolean {
+  return normalizeMaterial(row.material) === 'chapa'
+}
+
+export function isBobinaMaterial(row: ItemRow): boolean {
+  const material = normalizeMaterial(row.material)
+  return material === 'bobina' || material.startsWith('bobina ')
+}
+
+export function usesManualUnitWeight(modelId: string, row: ItemRow): boolean {
+  if (isBobinaMaterial(row)) return true
+  if (isChapaMaterial(row)) return false
   return modelId === 'bobinas' || modelId === 'slitters_fitas'
 }
 
@@ -45,12 +58,15 @@ export function calculateRow(
 ): RowCalculation {
   const unidade = numericValue(row.unidade)
   const fatorUtilizado = numericValue(row.fator_utilizado)
-  const precoFator100 = numericValue(row.preco_fator_100 ?? row.preco)
-  const precoBobinaFator100 = numericValue(row.preco_bobina_fator_100)
+  const catalog = usesPriceCatalog(modelId) ? lookupCatalogPrice(row) : null
+  const catalogPrice = catalog?.precoFator100 ?? 0
+  const precoFator100 = catalogPrice || numericValue(row.preco_fator_100 ?? row.preco)
+  const precoBobinaFator100 = catalogPrice || numericValue(row.preco_bobina_fator_100)
   const precoServico = numericValue(row.preco_servico)
   const largura = numericValue(row.largura)
   const larguraBobina = numericValue(row.largura_bobina)
   const frete = percentRate(conditions.frete_percentual)
+  const icms = catalog?.icms ?? percentRate(row.icms)
 
   const manualWeight = usesManualUnitWeight(modelId, row)
   const pesoUnitario = manualWeight ? numericValue(row.peso_unitario) : sheetUnitWeight(row)
@@ -95,6 +111,7 @@ export function calculateRow(
     perdaPercentual,
     acrescimoPerdaPercentual,
     acrescimoPerdaValor,
+    icms,
   }
 }
 
