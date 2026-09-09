@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import { calculateRow } from './calc'
+import { calculateRow, usesManualUnitWeight } from './calc'
 import { displayFieldValue, formatCurrency, formatNumber, formatPercent } from './format'
 import { HIDDEN_FROM_CLIENT, fieldLabel, footerFields, isSupplierKey, itemFields } from './models'
 import { localPrintNumber } from './storage'
@@ -14,6 +14,9 @@ function valueForField(
 ): unknown {
   if (field.key === '_item') return index + 1
   const calc = calculateRow(modelId, row, conditions)
+  if (field.weightByMaterial && field.calc && field.calc in calc) {
+    return usesManualUnitWeight(modelId, row) ? row[field.key] : calc[field.calc]
+  }
   if (field.calculated && field.calc && field.calc in calc) {
     return calc[field.calc]
   }
