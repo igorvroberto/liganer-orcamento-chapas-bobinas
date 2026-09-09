@@ -788,7 +788,7 @@ export default function App() {
         <div className="summary-grid">
           <div className="summary-item">
             <span>Total (Kg)</span>
-            <strong>{formatNumber(summary.totalKg)} Kg</strong>
+            <strong>{formatNumber(summary.totalKg, 0)} Kg</strong>
           </div>
           <div className="summary-item">
             <span>Subtotal</span>

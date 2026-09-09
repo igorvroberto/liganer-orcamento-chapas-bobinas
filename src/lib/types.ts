@@ -17,6 +17,8 @@ export type FieldDef = {
   weightByMaterial?: boolean
   /** Casas decimais na exibição (padrão 2). Use 0 para inteiros. */
   fractionDigits?: number
+  /** Separador de milhar (padrão true). */
+  useGrouping?: boolean
   calc?: keyof RowCalculation
 }
 

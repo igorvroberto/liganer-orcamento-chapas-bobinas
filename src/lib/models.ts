@@ -211,8 +211,8 @@ export const MODELS: ModelDef[] = [
     rowRange: '3 a 12',
     fields: [
       ...alloyFields('CHAPA', { selectableMaterial: true }),
-      { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
-      { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
+      { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number', fractionDigits: 0, useGrouping: false },
+      { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number', fractionDigits: 0, useGrouping: false },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd', 'peças', 'pecas'], type: 'number' },
       pesoUnitarioField(),
       calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal', { fractionDigits: 0 }),
