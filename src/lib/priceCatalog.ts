@@ -129,9 +129,14 @@ function buildIndex(rows: PriceCatalogRow[]): Map<string, PriceCatalogRow> {
 }
 
 function findHeaderColumn(headers: string[], aliases: string[]): number {
-  for (let i = 0; i < headers.length; i += 1) {
-    const header = headers[i]
-    if (aliases.some((alias) => header === alias || header.includes(alias))) return i
+  // Match exato primeiro — evita "preto" capturar a coluna "preto e branco".
+  for (const alias of aliases) {
+    const exact = headers.findIndex((header) => header === alias)
+    if (exact >= 0) return exact
+  }
+  for (const alias of aliases) {
+    const partial = headers.findIndex((header) => header.includes(alias))
+    if (partial >= 0) return partial
   }
   return -1
 }
