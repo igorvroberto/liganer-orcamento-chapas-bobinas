@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { calculateRow, calculateSummary, numericValue, sheetUnitWeight, usesManualUnitWeight } from './lib/calc'
+import { calculateRow, calculateSummary, isBobinaMaterial, numericValue, sheetUnitWeight, usesManualUnitWeight } from './lib/calc'
 import { exportCsv, exportExcel, exportPdf } from './lib/export'
 import {
   displayFieldValue,
@@ -279,9 +279,9 @@ export default function App() {
       const list = [...(prev[modelId] || [])]
       const previous = list[index] || {}
       const nextRow: ItemRow = { ...previous, [key]: value }
-      if (key === 'material' && String(value).toUpperCase() === 'BOBINA') {
+      if (key === 'material' && isBobinaMaterial({ material: value })) {
         // Ao mudar para bobina, sugere o peso calculado da chapa se ainda não houver peso manual.
-        const suggested = sheetUnitWeight({ ...nextRow, material: 'CHAPA' })
+        const suggested = sheetUnitWeight({ ...nextRow, material: 'Chapa' })
         if (!numericValue(previous.peso_unitario) && suggested > 0) {
           nextRow.peso_unitario = Number(suggested.toFixed(3))
         }

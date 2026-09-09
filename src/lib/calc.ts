@@ -21,13 +21,25 @@ export function percentRate(value: unknown): number {
 /** Densidade padrão usada no plugin legado (kg/mm³ efetiva via fator 8). */
 const STEEL_FACTOR = 8
 
-/** Bobina: peso manual. Chapa: peso pela fórmula. Sem material, cai no padrão do modelo. */
-export function usesManualUnitWeight(modelId: string, row: ItemRow): boolean {
-  const material = String(row.material ?? '')
+/** Bobina (inteira/reduzida): peso manual. Chapa: peso pela fórmula. Sem material, cai no padrão do modelo. */
+export function normalizeMaterial(value: unknown): string {
+  return String(value ?? '')
     .trim()
-    .toUpperCase()
-  if (material === 'BOBINA') return true
-  if (material === 'CHAPA') return false
+    .toLowerCase()
+}
+
+export function isChapaMaterial(row: ItemRow): boolean {
+  return normalizeMaterial(row.material) === 'chapa'
+}
+
+export function isBobinaMaterial(row: ItemRow): boolean {
+  const material = normalizeMaterial(row.material)
+  return material === 'bobina' || material.startsWith('bobina ')
+}
+
+export function usesManualUnitWeight(modelId: string, row: ItemRow): boolean {
+  if (isBobinaMaterial(row)) return true
+  if (isChapaMaterial(row)) return false
   return modelId === 'bobinas' || modelId === 'slitters_fitas'
 }
 

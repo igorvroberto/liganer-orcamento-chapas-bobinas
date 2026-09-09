@@ -13,7 +13,7 @@ export type FieldDef = {
   section?: 'Rodapé'
   virtual?: boolean
   calculated?: boolean
-  /** Peso unitário: calculado/bloqueado para CHAPA, editável para BOBINA */
+  /** Peso unitário: calculado/bloqueado para Chapa, editável para Bobina inteira/reduzida */
   weightByMaterial?: boolean
   calc?: keyof RowCalculation
 }

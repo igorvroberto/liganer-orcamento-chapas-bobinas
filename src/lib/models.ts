@@ -10,7 +10,7 @@ export const THICKNESS_OPTIONS = [
 export const ICMS_OPTIONS = ['4%', '12%']
 export const COMMISSION_OPTIONS = ['Bonificada', 'Normal', 'Reduzida']
 export const COIL_TYPE_OPTIONS = ['Inteira', 'Cortada', 'Com PVC']
-export const MATERIAL_CHAPA_BOBINA = ['CHAPA', 'BOBINA']
+export const MATERIAL_OPTIONS = ['Bobina inteira', 'Bobina reduzida', 'Chapa']
 
 function calcField(
   key: string,
@@ -65,14 +65,14 @@ function footerFieldsModule(): FieldDef[] {
 
 function alloyFields(
   materialDefault: string,
-  { selectableChapaBobina = false }: { selectableChapaBobina?: boolean } = {},
+  { selectableMaterial = false }: { selectableMaterial?: boolean } = {},
 ): FieldDef[] {
-  const materialField: FieldDef = selectableChapaBobina
+  const materialField: FieldDef = selectableMaterial
     ? {
         key: 'material',
         label: 'Material',
         aliases: ['material', 'produto'],
-        options: MATERIAL_CHAPA_BOBINA,
+        options: MATERIAL_OPTIONS,
         default: materialDefault,
         askWhenNew: true,
       }
@@ -192,7 +192,7 @@ export const MODELS: ModelDef[] = [
     sheet: 'Orçamento',
     rowRange: '3 a 12',
     fields: [
-      ...alloyFields('CHAPA', { selectableChapaBobina: true }),
+      ...alloyFields('Chapa', { selectableMaterial: true }),
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
       { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd', 'peças', 'pecas'], type: 'number' },
@@ -215,7 +215,7 @@ export const MODELS: ModelDef[] = [
     name: 'Bobinas',
     status: 'configured',
     fields: [
-      ...alloyFields('BOBINA', { selectableChapaBobina: true }),
+      ...alloyFields('Bobina inteira', { selectableMaterial: true }),
       { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number' },
       { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number' },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd'], type: 'number' },
