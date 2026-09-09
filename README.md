@@ -38,8 +38,9 @@ O `prebuild` sincroniza a planilha de preços (`legado/precos-bobinas-chapas.xls
 2. Commit + merge/deploy — ou, no HostGator, troque só `precos-bobinas-chapas.xlsx` e dê hard-refresh.
 ## Funcionalidades
 
-- Modelos: Chapas, Bobinas, Slitters e fitas, Blanks (Tubos e barras ainda pendente)
+- Modelo único de chapas e bobinas (material selecionável)
 - Cliente (nome / CNPJ), itens, condições (pagamento, frete CIF/FOB, expedição SP/CE…)
+- Preço fator 100 e ICMS pela planilha Excel
 - Peso, fator utilizado, frete %, IPI 3,25%
 - Ditado por voz (Web Speech API)
 - Exportação: PDF cliente, PDF Liganer, Excel, CSV

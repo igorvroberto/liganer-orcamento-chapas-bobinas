@@ -122,7 +122,7 @@ export function exportPdf(
     .join('')
 
   const summaryRows = [
-    ['Total (Kg)', `${formatNumber(summary.totalKg)} Kg`],
+    ['Total (Kg)', `${formatNumber(summary.totalKg, 0)} Kg`],
     ['Subtotal', formatCurrency(summary.subtotal)],
     ['IPI 3,25%', formatCurrency(summary.ipi)],
     ['Total', formatCurrency(summary.total)],

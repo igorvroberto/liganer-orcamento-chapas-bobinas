@@ -38,10 +38,10 @@ export function isBobinaMaterial(row: ItemRow): boolean {
   return material === 'bobina' || material.startsWith('bobina ')
 }
 
-export function usesManualUnitWeight(modelId: string, row: ItemRow): boolean {
+export function usesManualUnitWeight(_modelId: string, row: ItemRow): boolean {
   if (isBobinaMaterial(row)) return true
   if (isChapaMaterial(row)) return false
-  return modelId === 'bobinas' || modelId === 'slitters_fitas'
+  return false
 }
 
 export function sheetUnitWeight(row: ItemRow): number {
@@ -69,8 +69,9 @@ export function calculateRow(
   const icms = catalog?.icms ?? percentRate(row.icms)
 
   const manualWeight = usesManualUnitWeight(modelId, row)
-  const pesoUnitario = manualWeight ? numericValue(row.peso_unitario) : sheetUnitWeight(row)
-  const pesoTotal = unidade * pesoUnitario
+  const rawUnitWeight = manualWeight ? numericValue(row.peso_unitario) : sheetUnitWeight(row)
+  const pesoUnitario = Math.round(rawUnitWeight)
+  const pesoTotal = Math.round(unidade * rawUnitWeight)
 
   const precoFatorUtilizado = fatorUtilizado ? precoFator100 / (fatorUtilizado / 100) : 0
   const precoBobinaFatorUtilizado = fatorUtilizado
@@ -86,12 +87,8 @@ export function calculateRow(
     perdaMm < 100 ? perdaPercentual : perdaMm < 300 ? perdaPercentual * 0.3 : perdaPercentual * 0.2
   const acrescimoPerdaValor = precoBobinaFator100 * acrescimoPerdaPercentual
 
-  const basePrecoTotal =
-    modelId === 'chapas' || !precoBobinaFator100 ? precoFatorUtilizado : precoBobinaFatorUtilizado
-  const precoTotal =
-    modelId === 'slitters_fitas' || modelId === 'blanks'
-      ? basePrecoTotal + acrescimoPerdaValor + precoServico
-      : basePrecoTotal + precoServico
+  const basePrecoTotal = precoFatorUtilizado
+  const precoTotal = basePrecoTotal + precoServico
   const precoSemIpi = frete === 0 ? precoTotal : precoTotal + precoTotal * frete
   const subtotal = pesoTotal && precoSemIpi ? pesoTotal * precoSemIpi : 0
 

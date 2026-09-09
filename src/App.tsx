@@ -10,7 +10,6 @@ import {
   formatPercent,
 } from './lib/format'
 import {
-  MODELS,
   fieldLabel,
   footerFields,
   getModel,
@@ -166,14 +165,17 @@ function ConditionField({
 
 export default function App() {
   const draft = useMemo(() => loadDraft(), [])
-  const [modelId, setModelId] = useState(draft?.modelId || 'chapas')
+  const [modelId] = useState('chapas')
   const [client, setClient] = useState<ClientInfo>(draft?.client || { name: '', cnpj: '' })
-  const [rowsByModel, setRowsByModel] = useState<Record<string, ItemRow[]>>(
-    draft?.rowsByModel || { chapas: [emptyRowDefaults(itemFields(getModel('chapas')))] },
-  )
-  const [draftsByModel, setDraftsByModel] = useState<Record<string, Conditions>>(
-    draft?.draftsByModel || {},
-  )
+  const [rowsByModel, setRowsByModel] = useState<Record<string, ItemRow[]>>({
+    chapas:
+      draft?.rowsByModel?.chapas?.length
+        ? draft.rowsByModel.chapas
+        : [emptyRowDefaults(itemFields(getModel('chapas')))],
+  })
+  const [draftsByModel, setDraftsByModel] = useState<Record<string, Conditions>>({
+    chapas: draft?.draftsByModel?.chapas || {},
+  })
   const [status, setStatus] = useState<{ text: string; kind?: 'ok' | 'error' }>({ text: '' })
   const [config, setConfig] = useState<SyncConfig>({})
   const [priceCatalogVersion, setPriceCatalogVersion] = useState(0)
@@ -295,10 +297,16 @@ export default function App() {
       const nextRow: ItemRow = { ...previous, [key]: value }
       if (key === 'material' && isBobinaMaterial({ material: value })) {
         // Ao mudar para bobina, sugere o peso calculado da chapa se ainda não houver peso manual.
-        const suggested = sheetUnitWeight({ ...nextRow, material: 'Chapa' })
+        const suggested = sheetUnitWeight({ ...nextRow, material: 'CHAPA' })
         if (!numericValue(previous.peso_unitario) && suggested > 0) {
-          nextRow.peso_unitario = Number(suggested.toFixed(3))
+          nextRow.peso_unitario = Math.round(suggested)
         }
+      }
+      if (key === 'material') {
+        nextRow.material = String(value).trim().toUpperCase()
+      }
+      if (key === 'peso_unitario' && value !== '' && value !== undefined) {
+        nextRow.peso_unitario = Math.round(numericValue(value))
       }
       list[index] = nextRow
       return { ...prev, [modelId]: list }
@@ -640,17 +648,6 @@ export default function App() {
               onChange={(e) => setClient((c) => ({ ...c, cnpj: formatCnpj(e.target.value) }))}
             />
           </label>
-          <label className="field">
-            <span>Modelo</span>
-            <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
-              {MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                  {m.status === 'pending' ? ' (pendente)' : ''}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
       </section>
 
@@ -791,7 +788,7 @@ export default function App() {
         <div className="summary-grid">
           <div className="summary-item">
             <span>Total (Kg)</span>
-            <strong>{formatNumber(summary.totalKg)} Kg</strong>
+            <strong>{formatNumber(summary.totalKg, 0)} Kg</strong>
           </div>
           <div className="summary-item">
             <span>Subtotal</span>
