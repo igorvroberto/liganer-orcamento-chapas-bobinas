@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "sync:prices": "node scripts/sync-price-workbook.mjs",
+    "prebuild": "npm run sync:prices",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview"

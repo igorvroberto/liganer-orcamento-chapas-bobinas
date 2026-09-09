@@ -1,4 +1,5 @@
-import catalog from '../data/precos-bobinas-chapas.json'
+import * as XLSX from 'xlsx'
+import fallbackCatalog from '../data/precos-bobinas-chapas.json'
 import type { ItemRow } from './types'
 
 export type PriceColumnKey =
@@ -22,7 +23,18 @@ type CatalogFile = {
   rows: PriceCatalogRow[]
 }
 
-const data = catalog as CatalogFile
+const PRICE_HEADERS: Record<PriceColumnKey, string[]> = {
+  bobina_inteira: ['bobina inteira'],
+  bobina_reduzida_ou_chapa_sem_pvc: [
+    'bobina reduzida ou chapa sem pvc',
+    'bobina reduzida',
+    'chapa sem pvc',
+  ],
+  azul: ['azul'],
+  preto_e_branco: ['preto e branco'],
+  preto: ['preto'],
+  nitto_fiber: ['nitto fiber', 'fiber'],
+}
 
 function numericValue(value: unknown): number {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0
@@ -34,6 +46,14 @@ function numericValue(value: unknown): number {
     : text.replace(/[^\d.-]/g, '')
   const n = Number(normalized)
   return Number.isFinite(n) ? n : 0
+}
+
+function normalizeHeader(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
 }
 
 function normalizeMaterial(value: unknown): string {
@@ -95,10 +115,140 @@ function thicknessKey(value: unknown): number {
   return Math.round(numericValue(value) * 1000) / 1000
 }
 
-const index = new Map<string, PriceCatalogRow>()
-for (const row of data.rows) {
-  const key = `${row.tipo}|${thicknessKey(row.espessura)}|${row.acabamento}`
-  index.set(key, row)
+function roundPrice(value: unknown): number {
+  const n = numericValue(value)
+  return n ? Math.round(n * 1e6) / 1e6 : 0
+}
+
+function buildIndex(rows: PriceCatalogRow[]): Map<string, PriceCatalogRow> {
+  const next = new Map<string, PriceCatalogRow>()
+  for (const row of rows) {
+    next.set(`${row.tipo}|${thicknessKey(row.espessura)}|${row.acabamento}`, row)
+  }
+  return next
+}
+
+function findHeaderColumn(headers: string[], aliases: string[]): number {
+  for (let i = 0; i < headers.length; i += 1) {
+    const header = headers[i]
+    if (aliases.some((alias) => header === alias || header.includes(alias))) return i
+  }
+  return -1
+}
+
+/** Converte a 1ª aba do Excel no formato interno do catálogo. */
+export function parsePriceWorkbook(buffer: ArrayBuffer | Uint8Array): PriceCatalogRow[] {
+  const book = XLSX.read(buffer, { type: 'array' })
+  const sheetName = book.SheetNames[0]
+  if (!sheetName) return []
+  const sheet = book.Sheets[sheetName]
+  const matrix = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
+    header: 1,
+    defval: null,
+    raw: true,
+  })
+  if (!matrix.length) return []
+
+  const headers = (matrix[0] || []).map(normalizeHeader)
+  const colTipo = findHeaderColumn(headers, ['tipo'])
+  const colEsp = findHeaderColumn(headers, ['espessura'])
+  const colAcab = findHeaderColumn(headers, ['acabamento'])
+  const colIcms = findHeaderColumn(headers, ['icms'])
+  if (colTipo < 0 || colEsp < 0 || colAcab < 0) return []
+
+  const priceCols = {} as Record<PriceColumnKey, number>
+  for (const key of Object.keys(PRICE_HEADERS) as PriceColumnKey[]) {
+    priceCols[key] = findHeaderColumn(headers, PRICE_HEADERS[key])
+  }
+
+  const rows: PriceCatalogRow[] = []
+  for (let r = 1; r < matrix.length; r += 1) {
+    const line = matrix[r] || []
+    const tipo = normalizeTipo(line[colTipo])
+    const acabamento = normalizeAcabamento(line[colAcab])
+    const espessura = thicknessKey(line[colEsp])
+    if (!tipo || !acabamento || !espessura) continue
+    const precos = {
+      bobina_inteira: 0,
+      bobina_reduzida_ou_chapa_sem_pvc: 0,
+      azul: 0,
+      preto_e_branco: 0,
+      preto: 0,
+      nitto_fiber: 0,
+    } as Record<PriceColumnKey, number>
+    for (const key of Object.keys(precos) as PriceColumnKey[]) {
+      const col = priceCols[key]
+      precos[key] = col >= 0 ? roundPrice(line[col]) : 0
+    }
+    rows.push({
+      tipo,
+      espessura,
+      acabamento,
+      icms: colIcms >= 0 ? numericValue(line[colIcms]) : 0,
+      precos,
+    })
+  }
+  return rows
+}
+
+const fallback = fallbackCatalog as CatalogFile
+let sourceLabel = fallback.source || 'fallback-json'
+let catalogRows: PriceCatalogRow[] = fallback.rows
+let index = buildIndex(catalogRows)
+
+export function getPriceCatalogMeta(): { source: string; rows: number } {
+  return { source: sourceLabel, rows: catalogRows.length }
+}
+
+export function setPriceCatalogRows(rows: PriceCatalogRow[], source: string): void {
+  catalogRows = rows
+  sourceLabel = source
+  index = buildIndex(rows)
+}
+
+/** URL pública do Excel publicado com o app (`public/precos-bobinas-chapas.xlsx`). */
+export function priceWorkbookUrl(): string {
+  const base = import.meta.env.BASE_URL || '/'
+  return `${base}precos-bobinas-chapas.xlsx`
+}
+
+/**
+ * Busca o Excel no servidor e atualiza o catálogo em memória.
+ * Se falhar, mantém o JSON embutido no build.
+ */
+export async function loadPriceCatalogFromExcel(
+  url: string = priceWorkbookUrl(),
+): Promise<{ ok: boolean; rows: number; source: string; error?: string }> {
+  try {
+    const response = await fetch(url, { cache: 'no-store' })
+    if (!response.ok) {
+      return {
+        ok: false,
+        rows: catalogRows.length,
+        source: sourceLabel,
+        error: `HTTP ${response.status}`,
+      }
+    }
+    const buffer = await response.arrayBuffer()
+    const rows = parsePriceWorkbook(buffer)
+    if (!rows.length) {
+      return {
+        ok: false,
+        rows: catalogRows.length,
+        source: sourceLabel,
+        error: 'Planilha sem linhas válidas',
+      }
+    }
+    setPriceCatalogRows(rows, url)
+    return { ok: true, rows: rows.length, source: url }
+  } catch (error) {
+    return {
+      ok: false,
+      rows: catalogRows.length,
+      source: sourceLabel,
+      error: error instanceof Error ? error.message : 'Falha ao carregar planilha',
+    }
+  }
 }
 
 export function findPriceRow(row: ItemRow): PriceCatalogRow | null {

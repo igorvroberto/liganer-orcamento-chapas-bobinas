@@ -30,6 +30,12 @@ npm run build
 npm run preview
 ```
 
+O `prebuild` sincroniza a planilha de preços (`legado/precos-bobinas-chapas.xlsx` → `public/` + JSON de fallback). Em produção o app lê o Excel em `/bobinas-chapas/precos-bobinas-chapas.xlsx` automaticamente.
+
+## Atualizar preços
+
+1. Envie/substitua `legado/precos-bobinas-chapas.xlsx` (mesmas colunas).
+2. Commit + merge/deploy — ou, no HostGator, troque só `precos-bobinas-chapas.xlsx` e dê hard-refresh.
 ## Funcionalidades
 
 - Modelos: Chapas, Bobinas, Slitters e fitas, Blanks (Tubos e barras ainda pendente)

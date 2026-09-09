@@ -32,6 +32,7 @@ import {
   saveDraft,
   type SyncConfig,
 } from './lib/storage'
+import { loadPriceCatalogFromExcel } from './lib/priceCatalog'
 import type { ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
 
 type DictationTarget = 'item' | 'footer'
@@ -175,6 +176,7 @@ export default function App() {
   )
   const [status, setStatus] = useState<{ text: string; kind?: 'ok' | 'error' }>({ text: '' })
   const [config, setConfig] = useState<SyncConfig>({})
+  const [priceCatalogVersion, setPriceCatalogVersion] = useState(0)
   const [listening, setListening] = useState(false)
   const [autoListen, setAutoListen] = useState(false)
   const [dictationTarget, setDictationTarget] = useState<DictationTarget>('item')
@@ -213,7 +215,10 @@ export default function App() {
   const conditionsFields = footerFields(model)
   const rows = rowsByModel[modelId] || []
   const conditions = draftsByModel[modelId] || {}
-  const summary = calculateSummary(modelId, rows, conditions)
+  const summary = useMemo(
+    () => calculateSummary(modelId, rows, conditions),
+    [modelId, rows, conditions, priceCatalogVersion],
+  )
 
   const safeRowIndex = rows.length ? Math.min(Math.max(activeRowIndex, 0), rows.length - 1) : 0
   const activeRow = rows[safeRowIndex] || {}
@@ -235,6 +240,15 @@ export default function App() {
 
   useEffect(() => {
     void loadConfig().then(setConfig)
+  }, [])
+
+  useEffect(() => {
+    void loadPriceCatalogFromExcel().then((result) => {
+      setPriceCatalogVersion((v) => v + 1)
+      if (!result.ok) {
+        console.warn('Catálogo de preços: usando fallback JSON.', result.error)
+      }
+    })
   }, [])
 
   useEffect(() => {
