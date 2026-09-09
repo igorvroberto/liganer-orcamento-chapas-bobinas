@@ -32,7 +32,11 @@ import {
   saveDraft,
   type SyncConfig,
 } from './lib/storage'
-import { getCatalogSelectOptions, loadPriceCatalogFromExcel } from './lib/priceCatalog'
+import {
+  getCatalogSelectOptions,
+  loadPriceCatalogFromExcel,
+  pruneInvalidCatalogSelections,
+} from './lib/priceCatalog'
 import type { ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
 
 type DictationTarget = 'item' | 'footer'
@@ -83,7 +87,13 @@ function CellControl({
     )
   }
 
-  if (field.options?.length) {
+  const cascadeLocked =
+    (field.key === 'acabamento' && !String(row.tipo ?? '').trim()) ||
+    (field.key === 'espessura' &&
+      (!String(row.tipo ?? '').trim() || !String(row.acabamento ?? '').trim()))
+  const locked = Boolean(field.locked || cascadeLocked)
+
+  if (Array.isArray(field.options)) {
     const normalizedValue = value == null ? '' : String(value)
     const supportsCustom = Boolean(field.customOptionLabel)
     const hasPreset = field.options.includes(normalizedValue)
@@ -95,7 +105,7 @@ function CellControl({
         <div className="cell-control-stack">
           <select
             className="cell-control"
-            disabled={field.locked}
+            disabled={locked}
             value={usingCustom ? field.customOptionLabel : normalizedValue}
             onChange={(e) => {
               const next = e.target.value
@@ -118,7 +128,7 @@ function CellControl({
           {usingCustom || customSelected ? (
             <input
               className="cell-control"
-              disabled={field.locked}
+              disabled={locked}
               inputMode="numeric"
               value={customSelected ? '' : normalizedValue}
               onChange={(e) => onChange(e.target.value)}
@@ -133,7 +143,7 @@ function CellControl({
     return (
       <select
         className="cell-control"
-        disabled={field.locked}
+        disabled={locked}
         value={normalizedValue}
         onChange={(e) => onChange(e.target.value)}
         aria-label={fieldLabel(field.label)}
@@ -151,7 +161,7 @@ function CellControl({
   return (
     <input
       className="cell-control"
-      disabled={field.locked}
+      disabled={locked}
       inputMode={
         field.type === 'number' || field.type === 'currency' || field.type === 'percent'
           ? 'decimal'
@@ -259,15 +269,9 @@ export default function App() {
     activeRowIndex,
   }
 
-  const catalogOptions = useMemo(
-    () => getCatalogSelectOptions(),
-    [priceCatalogVersion],
-  )
   const model = getModel(modelId)
-  const fields = useMemo(
-    () => withCatalogFieldOptions(itemFields(model), catalogOptions),
-    [model, catalogOptions],
-  )
+  const baseFields = useMemo(() => itemFields(model), [model])
+  const fields = baseFields
   const conditionsFields = footerFields(model)
   const rows = rowsByModel[modelId] || []
   const conditions = draftsByModel[modelId] || {}
@@ -278,9 +282,27 @@ export default function App() {
 
   const safeRowIndex = rows.length ? Math.min(Math.max(activeRowIndex, 0), rows.length - 1) : 0
   const activeRow = rows[safeRowIndex] || {}
-  const dictatableItemFields = fields.filter((f) => {
+  const activeRowFields = useMemo(
+    () =>
+      withCatalogFieldOptions(
+        baseFields,
+        getCatalogSelectOptions({
+          tipo: activeRow.tipo,
+          acabamento: activeRow.acabamento,
+        }),
+      ),
+    [baseFields, activeRow.tipo, activeRow.acabamento, priceCatalogVersion],
+  )
+  const dictatableItemFields = activeRowFields.filter((f) => {
     if (f.hiddenInApp || f.calculated || f.locked) return false
     if (f.weightByMaterial && isCalculatedForRow(f, modelId, activeRow)) return false
+    if (f.key === 'acabamento' && !String(activeRow.tipo ?? '').trim()) return false
+    if (
+      f.key === 'espessura' &&
+      (!String(activeRow.tipo ?? '').trim() || !String(activeRow.acabamento ?? '').trim())
+    ) {
+      return false
+    }
     return true
   })
   const safeItemStep = dictatableItemFields.length
@@ -348,7 +370,7 @@ export default function App() {
     setRowsByModel((prev) => {
       const list = [...(prev[modelId] || [])]
       const previous = list[index] || {}
-      const nextRow: ItemRow = { ...previous, [key]: value }
+      let nextRow: ItemRow = { ...previous, [key]: value }
       if (key === 'material' && isBobinaMaterial({ material: value })) {
         // Ao mudar para bobina, sugere o peso calculado da chapa se ainda não houver peso manual.
         const suggested = sheetUnitWeight({ ...nextRow, material: 'CHAPA' })
@@ -361,6 +383,9 @@ export default function App() {
       }
       if (key === 'peso_unitario' && value !== '' && value !== undefined) {
         nextRow.peso_unitario = Math.round(numericValue(value))
+      }
+      if (key === 'tipo' || key === 'acabamento') {
+        nextRow = pruneInvalidCatalogSelections(nextRow)
       }
       list[index] = nextRow
       return { ...prev, [modelId]: list }
@@ -444,10 +469,21 @@ export default function App() {
     const rowForDictation = rowsNow[rowIndex] || emptyRowDefaults(itemFields(modelNow))
     const itemFs = withCatalogFieldOptions(
       itemFields(modelNow),
-      getCatalogSelectOptions(),
+      getCatalogSelectOptions({
+        tipo: rowForDictation.tipo,
+        acabamento: rowForDictation.acabamento,
+      }),
     ).filter((f) => {
       if (f.hiddenInApp || f.calculated || f.locked) return false
       if (f.weightByMaterial && isCalculatedForRow(f, snap.modelId, rowForDictation)) return false
+      if (f.key === 'acabamento' && !String(rowForDictation.tipo ?? '').trim()) return false
+      if (
+        f.key === 'espessura' &&
+        (!String(rowForDictation.tipo ?? '').trim() ||
+          !String(rowForDictation.acabamento ?? '').trim())
+      ) {
+        return false
+      }
       return true
     })
     const footerFs = footerFields(modelNow)
@@ -778,6 +814,13 @@ export default function App() {
               {rows.map((row, index) => {
                 const calc = calculateRow(modelId, row, conditions)
                 const isActive = index === safeRowIndex
+                const rowFields = withCatalogFieldOptions(
+                  baseFields,
+                  getCatalogSelectOptions({
+                    tipo: row.tipo,
+                    acabamento: row.acabamento,
+                  }),
+                )
                 return (
                   <tr
                     key={index}
@@ -798,7 +841,7 @@ export default function App() {
                       </button>
                     </td>
                     <td className="item-number-cell">{index + 1}</td>
-                    {fields.map((field) => {
+                    {rowFields.map((field) => {
                       const value = isCalculatedForRow(field, modelId, row)
                         ? field.calc
                           ? calc[field.calc]
