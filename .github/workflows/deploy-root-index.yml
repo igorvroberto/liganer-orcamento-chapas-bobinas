@@ -1,0 +1,35 @@
+name: Deploy root index to vendas.liganer.com.br
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-root-index
+  cancel-in-progress: true
+
+jobs:
+  deploy-root-index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare publish folder
+        run: |
+          mkdir -p root-dist
+          cp deploy/root-index/index.html root-dist/index.html
+
+      - name: Deploy root index via FTP/FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          local-dir: ./root-dist/
+          server-dir: /vendas.liganer.com.br/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**

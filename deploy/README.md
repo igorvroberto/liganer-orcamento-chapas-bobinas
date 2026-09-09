@@ -47,6 +47,17 @@ Prefira **FTPS**. Se o HostGator só aceitar FTP puro, edite `.github/workflows/
 }
 ```
 
+
+### Home simples em `vendas.liganer.com.br/`
+
+Há um workflow separado: **Deploy root index to vendas.liganer.com.br**.
+
+- Fonte: `deploy/root-index/index.html`
+- Destino FTP: `/vendas.liganer.com.br/`
+- Publica apenas o `index.html` da raiz, sem mexer em `/blanks/`, `/bobinas-chapas/` e `/prospeccao/`
+
+Use **Actions → Deploy root index to vendas.liganer.com.br → Run workflow** depois do merge.
+
 ### Atualizar preços (planilha Excel)
 
 O app carrega `precos-bobinas-chapas.xlsx` ao abrir a página.
