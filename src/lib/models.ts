@@ -3,6 +3,8 @@ import type { FieldDef, ModelDef } from './types'
 export const TYPE_OPTIONS = ['304', '430', 'J4', '410S', '316L', '410D', '201', 'QN1803', '439']
 export const FINISH_OPTIONS = ['2B', 'BA', 'BQ', 'ESCOVADO']
 export const PVC_OPTIONS = ['NÃO', 'AZUL', 'PRETO E BRANCO', 'PRETO', 'NITTO FIBER']
+export const WIDTH_OPTIONS = ['1250', '1500', '1219']
+export const LENGTH_OPTIONS = ['3000', '2000']
 export const THICKNESS_OPTIONS = [
   '0,35', '0,40', '0,50', '0,60', '0,80', '1,00', '1,20', '1,50',
   '2,00', '2,50', '3,00', '3,50', '4,00', '4,50', '5,00', '6,00', '8,00',
@@ -211,8 +213,26 @@ export const MODELS: ModelDef[] = [
     rowRange: '3 a 12',
     fields: [
       ...alloyFields('CHAPA', { selectableMaterial: true }),
-      { key: 'largura', label: 'Largura', aliases: ['largura', 'larg'], type: 'number', fractionDigits: 0, useGrouping: false },
-      { key: 'comprimento', label: 'Comprimento', aliases: ['comprimento', 'comp'], type: 'number', fractionDigits: 0, useGrouping: false },
+      {
+        key: 'largura',
+        label: 'Largura',
+        aliases: ['largura', 'larg'],
+        type: 'number',
+        options: WIDTH_OPTIONS,
+        customOptionLabel: 'OUTRA',
+        fractionDigits: 0,
+        useGrouping: false,
+      },
+      {
+        key: 'comprimento',
+        label: 'Comprimento',
+        aliases: ['comprimento', 'comp'],
+        type: 'number',
+        options: LENGTH_OPTIONS,
+        customOptionLabel: 'OUTRO',
+        fractionDigits: 0,
+        useGrouping: false,
+      },
       { key: 'unidade', label: 'Quantidade', aliases: ['unidade', 'quantidade', 'qtd', 'peças', 'pecas'], type: 'number' },
       pesoUnitarioField(),
       calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal', { fractionDigits: 0 }),

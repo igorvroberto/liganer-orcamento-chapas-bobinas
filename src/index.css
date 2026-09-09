@@ -436,6 +436,11 @@ select:disabled {
   font-size: 0.86rem;
 }
 
+.cell-control-stack {
+  display: grid;
+  gap: 6px;
+}
+
 .cell-control:disabled {
   background: #eef2f5;
   color: var(--muted);

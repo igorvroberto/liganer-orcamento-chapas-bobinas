@@ -6,6 +6,7 @@ export type FieldDef = {
   aliases?: string[]
   type?: FieldType
   options?: string[]
+  customOptionLabel?: string
   default?: string | number | boolean
   locked?: boolean
   hiddenInApp?: boolean

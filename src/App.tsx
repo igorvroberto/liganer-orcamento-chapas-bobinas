@@ -83,11 +83,57 @@ function CellControl({
   }
 
   if (field.options?.length) {
+    const normalizedValue = value == null ? '' : String(value)
+    const supportsCustom = Boolean(field.customOptionLabel)
+    const hasPreset = field.options.includes(normalizedValue)
+    const customSelected = supportsCustom && normalizedValue === field.customOptionLabel
+    const usingCustom = supportsCustom && !customSelected && normalizedValue !== '' && !hasPreset
+
+    if (supportsCustom) {
+      return (
+        <div className="cell-control-stack">
+          <select
+            className="cell-control"
+            disabled={field.locked}
+            value={usingCustom ? field.customOptionLabel : normalizedValue}
+            onChange={(e) => {
+              const next = e.target.value
+              if (next === field.customOptionLabel) {
+                onChange(field.customOptionLabel!)
+                return
+              }
+              onChange(next)
+            }}
+            aria-label={fieldLabel(field.label)}
+          >
+            <option value="">—</option>
+            {field.options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+            <option value={field.customOptionLabel}>{field.customOptionLabel}</option>
+          </select>
+          {usingCustom || customSelected ? (
+            <input
+              className="cell-control"
+              disabled={field.locked}
+              inputMode="numeric"
+              value={customSelected ? '' : normalizedValue}
+              onChange={(e) => onChange(e.target.value)}
+              aria-label={`${fieldLabel(field.label)} personalizada`}
+              placeholder={field.customOptionLabel}
+            />
+          ) : null}
+        </div>
+      )
+    }
+
     return (
       <select
         className="cell-control"
         disabled={field.locked}
-        value={value == null ? '' : String(value)}
+        value={normalizedValue}
         onChange={(e) => onChange(e.target.value)}
         aria-label={fieldLabel(field.label)}
       >
