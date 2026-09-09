@@ -1,6 +1,11 @@
 name: Deploy root index to vendas.liganer.com.br
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'deploy/root-index/**'
+      - '.github/workflows/deploy-root-index.yml'
   workflow_dispatch:
 
 concurrency:
