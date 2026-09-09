@@ -14,6 +14,7 @@ import {
   footerFields,
   getModel,
   itemFields,
+  withCatalogFieldOptions,
 } from './lib/models'
 import {
   coerceDictatedValue,
@@ -31,7 +32,7 @@ import {
   saveDraft,
   type SyncConfig,
 } from './lib/storage'
-import { loadPriceCatalogFromExcel } from './lib/priceCatalog'
+import { getCatalogSelectOptions, loadPriceCatalogFromExcel } from './lib/priceCatalog'
 import type { ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
 
 type DictationTarget = 'item' | 'footer'
@@ -258,8 +259,15 @@ export default function App() {
     activeRowIndex,
   }
 
+  const catalogOptions = useMemo(
+    () => getCatalogSelectOptions(),
+    [priceCatalogVersion],
+  )
   const model = getModel(modelId)
-  const fields = itemFields(model)
+  const fields = useMemo(
+    () => withCatalogFieldOptions(itemFields(model), catalogOptions),
+    [model, catalogOptions],
+  )
   const conditionsFields = footerFields(model)
   const rows = rowsByModel[modelId] || []
   const conditions = draftsByModel[modelId] || {}
@@ -434,7 +442,10 @@ export default function App() {
       ? Math.min(Math.max(snap.activeRowIndex, 0), rowsNow.length - 1)
       : 0
     const rowForDictation = rowsNow[rowIndex] || emptyRowDefaults(itemFields(modelNow))
-    const itemFs = itemFields(modelNow).filter((f) => {
+    const itemFs = withCatalogFieldOptions(
+      itemFields(modelNow),
+      getCatalogSelectOptions(),
+    ).filter((f) => {
       if (f.hiddenInApp || f.calculated || f.locked) return false
       if (f.weightByMaterial && isCalculatedForRow(f, snap.modelId, rowForDictation)) return false
       return true

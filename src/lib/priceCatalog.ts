@@ -36,6 +36,28 @@ const PRICE_HEADERS: Record<PriceColumnKey, string[]> = {
   nitto_fiber: ['nitto fiber', 'fiber'],
 }
 
+/** Colunas de preço que viram opções de PVC (além de NÃO). */
+const PVC_OPTION_LABELS: Partial<Record<PriceColumnKey, string>> = {
+  azul: 'AZUL',
+  preto_e_branco: 'PRETO E BRANCO',
+  preto: 'PRETO',
+  nitto_fiber: 'NITTO FIBER',
+}
+
+const DEFAULT_PVC_COLUMNS = Object.keys(PVC_OPTION_LABELS) as PriceColumnKey[]
+
+export type CatalogSelectOptions = {
+  tipo: string[]
+  acabamento: string[]
+  pvc: string[]
+  espessura: string[]
+}
+
+export type ParsedPriceWorkbook = {
+  rows: PriceCatalogRow[]
+  pvcColumns: PriceColumnKey[]
+}
+
 function numericValue(value: unknown): number {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0
   if (value === undefined || value === null || value === '') return 0
@@ -70,6 +92,17 @@ export function normalizeAcabamento(value: unknown): string {
     .replace(/\s+/g, '')
   if (raw === 'ESCOVADO' || raw === 'N4') return 'N4'
   return raw
+}
+
+/** Rótulo de UI: N4 na planilha aparece como ESCOVADO. */
+export function displayAcabamentoOption(value: unknown): string {
+  const normalized = normalizeAcabamento(value)
+  return normalized === 'N4' ? 'ESCOVADO' : normalized
+}
+
+/** Espessura no select no formato pt-BR (ex.: 0,40). */
+export function formatThicknessOption(value: number): string {
+  return value.toFixed(2).replace('.', ',')
 }
 
 export function normalizeTipo(value: unknown): string {
@@ -142,29 +175,32 @@ function findHeaderColumn(headers: string[], aliases: string[]): number {
 }
 
 /** Converte a 1ª aba do Excel no formato interno do catálogo. */
-export function parsePriceWorkbook(buffer: ArrayBuffer | Uint8Array): PriceCatalogRow[] {
+export function parsePriceWorkbook(buffer: ArrayBuffer | Uint8Array): ParsedPriceWorkbook {
   const book = XLSX.read(buffer, { type: 'array' })
   const sheetName = book.SheetNames[0]
-  if (!sheetName) return []
+  if (!sheetName) return { rows: [], pvcColumns: [...DEFAULT_PVC_COLUMNS] }
   const sheet = book.Sheets[sheetName]
   const matrix = XLSX.utils.sheet_to_json<(string | number | null)[]>(sheet, {
     header: 1,
     defval: null,
     raw: true,
   })
-  if (!matrix.length) return []
+  if (!matrix.length) return { rows: [], pvcColumns: [...DEFAULT_PVC_COLUMNS] }
 
   const headers = (matrix[0] || []).map(normalizeHeader)
   const colTipo = findHeaderColumn(headers, ['tipo'])
   const colEsp = findHeaderColumn(headers, ['espessura'])
   const colAcab = findHeaderColumn(headers, ['acabamento'])
   const colIcms = findHeaderColumn(headers, ['icms'])
-  if (colTipo < 0 || colEsp < 0 || colAcab < 0) return []
+  if (colTipo < 0 || colEsp < 0 || colAcab < 0) {
+    return { rows: [], pvcColumns: [...DEFAULT_PVC_COLUMNS] }
+  }
 
   const priceCols = {} as Record<PriceColumnKey, number>
   for (const key of Object.keys(PRICE_HEADERS) as PriceColumnKey[]) {
     priceCols[key] = findHeaderColumn(headers, PRICE_HEADERS[key])
   }
+  const pvcColumns = DEFAULT_PVC_COLUMNS.filter((key) => priceCols[key] >= 0)
 
   const rows: PriceCatalogRow[] = []
   for (let r = 1; r < matrix.length; r += 1) {
@@ -193,22 +229,28 @@ export function parsePriceWorkbook(buffer: ArrayBuffer | Uint8Array): PriceCatal
       precos,
     })
   }
-  return rows
+  return { rows, pvcColumns }
 }
 
 const fallback = fallbackCatalog as CatalogFile
 let sourceLabel = fallback.source || 'fallback-json'
 let catalogRows: PriceCatalogRow[] = fallback.rows
 let index = buildIndex(catalogRows)
+let pvcColumnsPresent: PriceColumnKey[] = [...DEFAULT_PVC_COLUMNS]
 
 export function getPriceCatalogMeta(): { source: string; rows: number } {
   return { source: sourceLabel, rows: catalogRows.length }
 }
 
-export function setPriceCatalogRows(rows: PriceCatalogRow[], source: string): void {
+export function setPriceCatalogRows(
+  rows: PriceCatalogRow[],
+  source: string,
+  pvcColumns: PriceColumnKey[] = DEFAULT_PVC_COLUMNS,
+): void {
   catalogRows = rows
   sourceLabel = source
   index = buildIndex(rows)
+  pvcColumnsPresent = pvcColumns.length ? [...pvcColumns] : [...DEFAULT_PVC_COLUMNS]
 }
 
 /**
@@ -241,8 +283,8 @@ export async function loadPriceCatalogFromExcel(
       }
     }
     const buffer = await response.arrayBuffer()
-    const rows = parsePriceWorkbook(buffer)
-    if (!rows.length) {
+    const parsed = parsePriceWorkbook(buffer)
+    if (!parsed.rows.length) {
       return {
         ok: false,
         rows: catalogRows.length,
@@ -250,8 +292,8 @@ export async function loadPriceCatalogFromExcel(
         error: 'Planilha sem linhas válidas',
       }
     }
-    setPriceCatalogRows(rows, url)
-    return { ok: true, rows: rows.length, source: url }
+    setPriceCatalogRows(parsed.rows, url, parsed.pvcColumns)
+    return { ok: true, rows: parsed.rows.length, source: url }
   } catch (error) {
     return {
       ok: false,
@@ -259,6 +301,48 @@ export async function loadPriceCatalogFromExcel(
       source: sourceLabel,
       error: error instanceof Error ? error.message : 'Falha ao carregar planilha',
     }
+  }
+}
+
+/** Opções de select derivadas da planilha (ou do JSON de fallback). */
+export function getCatalogSelectOptions(): CatalogSelectOptions {
+  const tipos: string[] = []
+  const acabamentos: string[] = []
+  const espessuras: number[] = []
+  const seenTipo = new Set<string>()
+  const seenAcab = new Set<string>()
+  const seenEsp = new Set<number>()
+
+  for (const row of catalogRows) {
+    if (row.tipo && !seenTipo.has(row.tipo)) {
+      seenTipo.add(row.tipo)
+      tipos.push(row.tipo)
+    }
+    if (row.acabamento) {
+      const label = displayAcabamentoOption(row.acabamento)
+      if (!seenAcab.has(label)) {
+        seenAcab.add(label)
+        acabamentos.push(label)
+      }
+    }
+    if (row.espessura && !seenEsp.has(row.espessura)) {
+      seenEsp.add(row.espessura)
+      espessuras.push(row.espessura)
+    }
+  }
+
+  espessuras.sort((a, b) => a - b)
+
+  return {
+    tipo: tipos,
+    acabamento: acabamentos,
+    pvc: [
+      'NÃO',
+      ...pvcColumnsPresent
+        .map((key) => PVC_OPTION_LABELS[key])
+        .filter((label): label is string => Boolean(label)),
+    ],
+    espessura: espessuras.map(formatThicknessOption),
   }
 }
 

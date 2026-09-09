@@ -39,6 +39,8 @@ direto no host (fora da pasta deste app), para outros repositórios usarem a mes
 1. Substitua no HostGator: `/vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bobinas.xlsx`
 2. Hard-refresh no navegador — sem rebuild. (Opcional: `npm run sync:prices` para atualizar o JSON de fallback no repo.)
 
+As opções de **Tipo**, **Acabamento**, **PVC** e **Espessura** também vêm dessa planilha (valores distintos / colunas de PVC).
+
 ## Funcionalidades
 
 - Modelo único de chapas e bobinas (material selecionável)

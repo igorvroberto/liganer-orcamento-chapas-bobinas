@@ -1,5 +1,7 @@
 import type { FieldDef, ModelDef } from './types'
+import type { CatalogSelectOptions } from './priceCatalog'
 
+/** Fallbacks usados só até o catálogo Excel/JSON preencher as opções. */
 export const TYPE_OPTIONS = ['304', '430', 'J4', '410S', '316L', '410D', '201', 'QN1803', '439']
 export const FINISH_OPTIONS = ['2B', 'BA', 'BQ', 'ESCOVADO']
 export const PVC_OPTIONS = ['NÃO', 'AZUL', 'PRETO E BRANCO', 'PRETO', 'NITTO FIBER']
@@ -256,6 +258,28 @@ export function getModel(id: string): ModelDef {
 
 export function itemFields(model: ModelDef): FieldDef[] {
   return model.fields.filter((f) => f.section !== 'Rodapé' && !f.hiddenInApp)
+}
+
+/** Sobrescreve opções de tipo/acabamento/PVC/espessura com as da planilha. */
+export function withCatalogFieldOptions(
+  fields: FieldDef[],
+  options: CatalogSelectOptions,
+): FieldDef[] {
+  return fields.map((field) => {
+    if (field.key === 'tipo' && options.tipo.length) {
+      return { ...field, options: options.tipo }
+    }
+    if (field.key === 'acabamento' && options.acabamento.length) {
+      return { ...field, options: options.acabamento }
+    }
+    if (field.key === 'pvc' && options.pvc.length) {
+      return { ...field, options: options.pvc }
+    }
+    if (field.key === 'espessura' && options.espessura.length) {
+      return { ...field, options: options.espessura }
+    }
+    return field
+  })
 }
 
 export function footerFields(model: ModelDef): FieldDef[] {
