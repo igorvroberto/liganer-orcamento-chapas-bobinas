@@ -287,5 +287,5 @@ export function lookupCatalogPrice(row: ItemRow): CatalogLookup {
 }
 
 export function usesPriceCatalog(modelId: string): boolean {
-  return modelId === 'chapas' || modelId === 'bobinas'
+  return modelId === 'chapas'
 }

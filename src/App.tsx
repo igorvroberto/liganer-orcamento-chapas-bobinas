@@ -10,7 +10,6 @@ import {
   formatPercent,
 } from './lib/format'
 import {
-  MODELS,
   fieldLabel,
   footerFields,
   getModel,
@@ -166,14 +165,17 @@ function ConditionField({
 
 export default function App() {
   const draft = useMemo(() => loadDraft(), [])
-  const [modelId, setModelId] = useState(draft?.modelId || 'chapas')
+  const [modelId] = useState('chapas')
   const [client, setClient] = useState<ClientInfo>(draft?.client || { name: '', cnpj: '' })
-  const [rowsByModel, setRowsByModel] = useState<Record<string, ItemRow[]>>(
-    draft?.rowsByModel || { chapas: [emptyRowDefaults(itemFields(getModel('chapas')))] },
-  )
-  const [draftsByModel, setDraftsByModel] = useState<Record<string, Conditions>>(
-    draft?.draftsByModel || {},
-  )
+  const [rowsByModel, setRowsByModel] = useState<Record<string, ItemRow[]>>({
+    chapas:
+      draft?.rowsByModel?.chapas?.length
+        ? draft.rowsByModel.chapas
+        : [emptyRowDefaults(itemFields(getModel('chapas')))],
+  })
+  const [draftsByModel, setDraftsByModel] = useState<Record<string, Conditions>>({
+    chapas: draft?.draftsByModel?.chapas || {},
+  })
   const [status, setStatus] = useState<{ text: string; kind?: 'ok' | 'error' }>({ text: '' })
   const [config, setConfig] = useState<SyncConfig>({})
   const [priceCatalogVersion, setPriceCatalogVersion] = useState(0)
@@ -645,17 +647,6 @@ export default function App() {
               inputMode="numeric"
               onChange={(e) => setClient((c) => ({ ...c, cnpj: formatCnpj(e.target.value) }))}
             />
-          </label>
-          <label className="field">
-            <span>Modelo</span>
-            <select value={modelId} onChange={(e) => setModelId(e.target.value)}>
-              {MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                  {m.status === 'pending' ? ' (pendente)' : ''}
-                </option>
-              ))}
-            </select>
           </label>
         </div>
       </section>

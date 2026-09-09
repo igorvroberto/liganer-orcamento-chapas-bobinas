@@ -38,10 +38,10 @@ export function isBobinaMaterial(row: ItemRow): boolean {
   return material === 'bobina' || material.startsWith('bobina ')
 }
 
-export function usesManualUnitWeight(modelId: string, row: ItemRow): boolean {
+export function usesManualUnitWeight(_modelId: string, row: ItemRow): boolean {
   if (isBobinaMaterial(row)) return true
   if (isChapaMaterial(row)) return false
-  return modelId === 'bobinas' || modelId === 'slitters_fitas'
+  return false
 }
 
 export function sheetUnitWeight(row: ItemRow): number {
@@ -87,12 +87,8 @@ export function calculateRow(
     perdaMm < 100 ? perdaPercentual : perdaMm < 300 ? perdaPercentual * 0.3 : perdaPercentual * 0.2
   const acrescimoPerdaValor = precoBobinaFator100 * acrescimoPerdaPercentual
 
-  const basePrecoTotal =
-    modelId === 'chapas' || !precoBobinaFator100 ? precoFatorUtilizado : precoBobinaFatorUtilizado
-  const precoTotal =
-    modelId === 'slitters_fitas' || modelId === 'blanks'
-      ? basePrecoTotal + acrescimoPerdaValor + precoServico
-      : basePrecoTotal + precoServico
+  const basePrecoTotal = precoFatorUtilizado
+  const precoTotal = basePrecoTotal + precoServico
   const precoSemIpi = frete === 0 ? precoTotal : precoTotal + precoTotal * frete
   const subtotal = pesoTotal && precoSemIpi ? pesoTotal * precoSemIpi : 0
 
