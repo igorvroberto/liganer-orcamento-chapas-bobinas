@@ -39,7 +39,7 @@ Há um workflow separado: **Deploy root index to vendas.liganer.com.br**.
 
 - Fonte: `deploy/root-index/index.html`
 - Destino FTP: `/vendas.liganer.com.br/`
-- Publica apenas o `index.html` da raiz, sem mexer em `/blanks/`, `/orcamento/chapas-bobinas/` e `/prospeccao/`
+- Publica apenas o `index.html` da raiz, sem mexer em `/orcamento/blanks-slitters/`, `/orcamento/chapas-bobinas/` e `/prospeccao/`
 
 Roda automaticamente no push da `main` quando `deploy/root-index/` (ou o próprio workflow) muda. Também dá para disparar em **Actions → Run workflow**.
 

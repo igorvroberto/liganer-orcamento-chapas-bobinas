@@ -2,7 +2,7 @@
 
 App interno de orçamento comercial da Liganer, no mesmo padrão dos sistemas em:
 
-- https://vendas.liganer.com.br/blanks/
+- https://vendas.liganer.com.br/orcamento/blanks-slitters/
 - https://vendas.liganer.com.br/prospeccao/
 
 Destino de publicação: **https://vendas.liganer.com.br/orcamento/chapas-bobinas/**
