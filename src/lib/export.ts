@@ -143,7 +143,7 @@ export function exportPdf(
     ['Subtotal', formatCurrency(summary.subtotal)],
     ['IPI 3,25%', formatCurrency(summary.ipi)],
     ['Total', formatCurrency(summary.total)],
-    ['Frete', formatPercent(summary.frete)],
+    ...(kind === 'liganer' ? [['Frete', formatPercent(summary.frete)]] : []),
   ]
 
   const summaryHtml = `
