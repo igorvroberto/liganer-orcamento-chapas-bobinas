@@ -6,6 +6,11 @@ export function numericValue(value: unknown): number {
   if (value === undefined || value === null || value === '') return 0
   const text = String(value).trim()
   if (!text) return 0
+  // 1.000 / 12.345.678 (pt-BR milhar sem decimal)
+  if (!text.includes(',') && /^\d{1,3}(\.\d{3})+$/.test(text)) {
+    const n = Number(text.replace(/\./g, ''))
+    return Number.isFinite(n) ? n : 0
+  }
   const normalized = text.includes(',')
     ? text.replace(/\./g, '').replace(',', '.')
     : text.replace(/[^\d.-]/g, '')
