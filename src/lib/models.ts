@@ -311,7 +311,6 @@ export const HIDDEN_FROM_CLIENT = new Set([
   '_acrescimo_perda_percentual',
   '_acrescimo_perda_valor',
   '_preco_total',
-  'icms',
 ])
 
 export function isSupplierKey(key: string): boolean {

@@ -33,9 +33,33 @@ function valueForField(
 function exportableFields(model: ModelDef, kind: 'cliente' | 'liganer'): FieldDef[] {
   const fields = itemFields(model).filter((f) => !f.hiddenInApp)
   if (kind === 'liganer') return fields
-  return fields.filter(
+  const visible = fields.filter(
     (f) => !HIDDEN_FROM_CLIENT.has(f.key) && f.type !== 'boolean' && !isSupplierKey(f.key),
   )
+  return orderClientePdfFields(visible)
+}
+
+/** PDF cliente: ICMS após peso total; preço sem IPI antes do subtotal. */
+function orderClientePdfFields(fields: FieldDef[]): FieldDef[] {
+  const byKey = new Map(fields.map((field) => [field.key, field]))
+  const result: FieldDef[] = []
+  for (const field of fields) {
+    if (field.key === 'icms' || field.key === '_preco_sem_ipi') continue
+    if (field.key === '_peso_total') {
+      result.push(field)
+      const icms = byKey.get('icms')
+      if (icms) result.push(icms)
+      continue
+    }
+    if (field.key === '_subtotal') {
+      const precoSemIpi = byKey.get('_preco_sem_ipi')
+      if (precoSemIpi) result.push(precoSemIpi)
+      result.push(field)
+      continue
+    }
+    result.push(field)
+  }
+  return result
 }
 
 export function exportExcel(
