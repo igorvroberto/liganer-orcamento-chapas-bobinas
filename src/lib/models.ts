@@ -56,13 +56,6 @@ function footerFieldsModule(): FieldDef[] {
       aliases: ['observacoes gerais', 'observações gerais', 'observacoes', 'observações'],
       section: 'Rodapé',
     },
-    {
-      key: 'frete_percentual',
-      label: 'Frete (%)',
-      aliases: ['frete', 'percentual frete', 'frete percentual'],
-      type: 'percent',
-      section: 'Rodapé',
-    },
   ]
 }
 
@@ -239,13 +232,20 @@ export const MODELS: ModelDef[] = [
       pesoUnitarioField(),
       calcField('_peso_total', 'Peso\ntotal', 'number', 'pesoTotal', { fractionDigits: 0 }),
       { key: 'um', label: 'UM', aliases: ['um', 'unidade medida'], default: 'KG', hiddenInApp: true },
-      calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
       icmsField(),
       calcField('_subtotal', 'Subtotal', 'currency', 'subtotal'),
       ...commercialFields(),
       { key: 'preco_servico', label: 'Preço\nserviço', aliases: ['preco servico', 'preço serviço'], type: 'currency' },
       { key: 'descricao_servico', label: 'Descrição\nserviço', aliases: ['descricao servico', 'descrição serviço'] },
       calcField('_preco_total', 'Preço\ntotal', 'currency', 'precoTotal'),
+      {
+        key: 'frete_percentual',
+        label: 'Frete\n%',
+        aliases: ['frete', 'percentual frete', 'frete percentual', 'frete %'],
+        type: 'percent',
+        askWhenNew: true,
+      },
+      calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
       ...supplierFields(),
       ...footerFieldsModule(),
     ],
