@@ -46,7 +46,7 @@ export function displayFieldValue(value: unknown, field: FieldDef): string {
   if (field.type === 'currency') return formatCurrency(numericValue(value))
   if (field.type === 'percent') {
     const n = numericValue(value)
-    return formatPercent(n > 1 ? n / 100 : n, digits)
+    return formatPercent(n >= 1 ? n / 100 : n, digits)
   }
   if (field.type === 'number') {
     const n = numericValue(value)
