@@ -390,6 +390,7 @@ select:disabled {
   position: sticky;
   top: 0;
   z-index: 1;
+  white-space: pre-line;
 }
 
 .items-table th.boolean-column,

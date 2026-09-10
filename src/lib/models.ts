@@ -290,6 +290,11 @@ export function fieldLabel(label: string): string {
   return label.replace(/\n/g, ' ')
 }
 
+/** Cabeçalho da tabela de itens: cada espaço vira quebra de linha. */
+export function itemHeaderLabel(label: string): string {
+  return label.replace(/ +/g, '\n')
+}
+
 /** Campos internos omitidos no PDF do cliente */
 export const HIDDEN_FROM_CLIENT = new Set([
   'fator_maximo',
