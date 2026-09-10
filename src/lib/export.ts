@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import { calculateRow, usesManualUnitWeight } from './calc'
-import { displayFieldValue, formatCurrency, formatNumber, formatPercent } from './format'
+import { displayFieldValue, formatCurrency, formatNumber } from './format'
 import {
   HIDDEN_FROM_CLIENT,
   fieldLabel,
@@ -148,7 +148,6 @@ export function exportPdf(
     ['Subtotal', formatCurrency(summary.subtotal)],
     ['IPI 3,25%', formatCurrency(summary.ipi)],
     ['Total', formatCurrency(summary.total)],
-    ...(kind === 'liganer' ? [['Frete', formatPercent(summary.frete)]] : []),
   ]
 
   const summaryHtml = `
