@@ -14,6 +14,7 @@ import {
   footerFields,
   getModel,
   itemFields,
+  itemHeaderLabel,
   withCatalogFieldOptions,
 } from './lib/models'
 import {
@@ -809,7 +810,7 @@ export default function App() {
                     key={field.key}
                     className={field.type === 'boolean' ? 'boolean-column' : undefined}
                   >
-                    {field.label}
+                    {itemHeaderLabel(field.label)}
                   </th>
                 ))}
               </tr>
