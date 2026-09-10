@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
+    <link
+      rel="icon"
+      type="image/webp"
+      href="https://liganer.com.br/wp-content/uploads/2023/06/liganer_favicon.webp"
+    />
     <title>Liganer Vendas</title>
     <style>
       :root {
@@ -49,8 +54,23 @@
         padding: 28px;
       }
 
+      .hero-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .hero-brand img {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        object-fit: contain;
+        background: #fff;
+      }
+
       .eyebrow {
-        margin: 0 0 10px;
+        margin: 0;
         color: var(--brand);
         font-size: 0.76rem;
         font-weight: 800;
@@ -118,7 +138,15 @@
   <body>
     <main>
       <section class="hero">
-        <p class="eyebrow">Liganer</p>
+        <div class="hero-brand">
+          <img
+            src="https://liganer.com.br/wp-content/uploads/2023/06/liganer_favicon.webp"
+            alt="Liganer"
+            width="42"
+            height="42"
+          />
+          <p class="eyebrow">Liganer</p>
+        </div>
         <h1>Sistemas de vendas</h1>
         <p class="lede">
           Acesso rápido aos sistemas atualmente publicados em vendas.liganer.com.br.
