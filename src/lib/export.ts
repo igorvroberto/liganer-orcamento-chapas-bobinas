@@ -312,10 +312,13 @@ export function exportPdf(
       white-space: nowrap;
       text-overflow: clip;
     }
-    table.items .item-no {
+    table.items td.item-no {
       width: 28px;
       font-weight: 700;
       color: #56635d;
+    }
+    table.items th.item-no {
+      width: 28px;
     }
     body.pdf-liganer table.items th {
       font-size: 5px;
