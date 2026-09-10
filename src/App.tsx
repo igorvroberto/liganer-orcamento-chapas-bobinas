@@ -711,8 +711,8 @@ export default function App() {
           height={42}
         />
         <div>
-          <p className="eyebrow">Liganer · Aço inoxidável</p>
-          <h1>Orçamento comercial</h1>
+          <p className="eyebrow">Liganer</p>
+          <h1>Orçamento de chapas e bobinas</h1>
         </div>
       </div>
       <p className="lede">
