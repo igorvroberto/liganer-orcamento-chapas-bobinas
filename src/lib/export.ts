@@ -1,7 +1,14 @@
 import * as XLSX from 'xlsx'
 import { calculateRow, usesManualUnitWeight } from './calc'
 import { displayFieldValue, formatCurrency, formatNumber, formatPercent } from './format'
-import { HIDDEN_FROM_CLIENT, fieldLabel, footerFields, isSupplierKey, itemFields } from './models'
+import {
+  HIDDEN_FROM_CLIENT,
+  fieldLabel,
+  footerFields,
+  isSupplierKey,
+  itemFields,
+  itemHeaderLabel,
+} from './models'
 import { localPrintNumber } from './storage'
 import type { ClientInfo, Conditions, FieldDef, ItemRow, ModelDef, Summary } from './types'
 
@@ -91,6 +98,11 @@ export function exportCsv(
   URL.revokeObjectURL(url)
 }
 
+function logoUrl(): string {
+  const base = import.meta.env.BASE_URL || '/'
+  return `${window.location.origin}${base}liganer_favicon.webp`
+}
+
 export function exportPdf(
   kind: 'cliente' | 'liganer',
   model: ModelDef,
@@ -103,22 +115,27 @@ export function exportPdf(
   const fields = exportableFields(model, kind)
   const footer = footerFields(model).filter((f) => String(conditions[f.key] ?? '').trim())
   const number = localPrintNumber()
-  const now = new Date().toLocaleDateString('pt-BR')
-  const title = kind === 'liganer' ? 'PDF Liganer' : 'PDF cliente'
+  const now = new Date().toLocaleString('pt-BR')
+  const variantLabel = kind === 'liganer' ? 'Uso interno Liganer' : 'Proposta comercial'
+  const pdfClass = kind === 'liganer' ? 'pdf-liganer' : 'pdf-cliente'
+  const logo = logoUrl()
 
   const itemRows = rows
-    .map(
-      (row, index) => `
-      <tr>
-        <td>${index + 1}</td>
-        ${fields
-          .map((field) => {
-            const value = valueForField(field, model.id, row, conditions, index)
-            return `<td>${escapeHtml(displayFieldValue(value, field))}</td>`
-          })
-          .join('')}
-      </tr>`,
-    )
+    .map((row, index) => {
+      const cells = fields
+        .map((field) => {
+          const value = valueForField(field, model.id, row, conditions, index)
+          const text =
+            field.type === 'boolean'
+              ? value
+                ? 'X'
+                : ''
+              : displayFieldValue(value, field)
+          return `<td>${escapeHtml(text)}</td>`
+        })
+        .join('')
+      return `<tr><td class="item-no">${index + 1}</td>${cells}</tr>`
+    })
     .join('')
 
   const summaryRows = [
@@ -129,58 +146,303 @@ export function exportPdf(
     ...(kind === 'liganer' ? [['Frete', formatPercent(summary.frete)]] : []),
   ]
 
+  const summaryHtml = `
+    <section class="panel">
+      <h2>Totais</h2>
+      <div class="kv">
+        ${summaryRows
+          .map(
+            ([label, value]) => `
+          <div>
+            <strong>${escapeHtml(label)}</strong>
+            <span>${escapeHtml(value)}</span>
+          </div>`,
+          )
+          .join('')}
+      </div>
+    </section>`
+
+  const conditionsHtml = `
+    <section class="panel">
+      <h2>Condições</h2>
+      <div class="kv">
+        ${
+          footer.length
+            ? footer
+                .map(
+                  (field) => `
+          <div>
+            <strong>${escapeHtml(fieldLabel(field.label))}</strong>
+            <span>${escapeHtml(displayFieldValue(conditions[field.key], field))}</span>
+          </div>`,
+                )
+                .join('')
+            : '<div><strong>—</strong><span>Sem condições preenchidas</span></div>'
+        }
+      </div>
+    </section>`
+
   const html = `<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>${title} · ${number}</title>
+  <title>Liganer · Orçamento ${escapeHtml(number)}</title>
   <style>
-    body { font-family: Arial, sans-serif; color: #152028; margin: 24px; }
-    h1 { font-size: 18px; margin: 0 0 4px; }
-    .meta { color: #5a6b78; margin-bottom: 16px; font-size: 13px; }
-    table { width: 100%; border-collapse: collapse; font-size: 11px; }
-    th, td { border: 1px solid #c9d4dc; padding: 6px 8px; text-align: left; }
-    th { background: #eef3f6; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
-    .box h2 { font-size: 13px; margin: 0 0 8px; }
-    .box div { margin: 4px 0; font-size: 12px; }
-    @media print { .noprint { display: none; } }
+    @page { size: A4 landscape; margin: 8mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #17211d;
+      font-family: Inter, Arial, Helvetica, sans-serif;
+      font-size: 10px;
+      background: #fff;
+    }
+    body.pdf-liganer { font-size: 7px; }
+
+    .print-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .print-actions button {
+      border: 0;
+      border-radius: 6px;
+      background: #c60000;
+      color: #fff;
+      padding: 8px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    @media print { .print-actions { display: none; } }
+
+    .banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: #c60000;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      background: #fff;
+      object-fit: contain;
+      flex: none;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+    .brand p {
+      margin: 3px 0 0;
+      font-size: 11px;
+      opacity: 0.92;
+    }
+    body.pdf-liganer .brand h1 { font-size: 14px; }
+    body.pdf-liganer .brand p { font-size: 9px; }
+    .banner-meta {
+      text-align: right;
+      font-size: 11px;
+      line-height: 1.45;
+      white-space: nowrap;
+    }
+    body.pdf-liganer .banner-meta { font-size: 8px; }
+
+    .client-card {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 0.8fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .client-card article {
+      border: 1px solid #d8dfd9;
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #f2f2f2;
+    }
+    .client-card span {
+      display: block;
+      color: #56635d;
+      font-size: 8px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 3px;
+    }
+    .client-card strong {
+      font-size: 12px;
+      font-weight: 700;
+    }
+    body.pdf-liganer .client-card strong { font-size: 9px; }
+
+    table.items {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    table.items th,
+    table.items td {
+      border: 1px solid #d8dfd9;
+      padding: 5px 4px;
+      vertical-align: middle;
+      text-align: center;
+      overflow: hidden;
+    }
+    table.items th {
+      background: #c60000;
+      color: #fff;
+      font-size: 7.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      line-height: 1.15;
+      white-space: pre-line;
+      letter-spacing: 0.01em;
+    }
+    table.items td {
+      white-space: nowrap;
+      text-overflow: clip;
+    }
+    table.items .item-no {
+      width: 28px;
+      font-weight: 700;
+      color: #56635d;
+    }
+    body.pdf-liganer table.items th {
+      font-size: 5px;
+      padding: 3px 2px;
+    }
+    body.pdf-liganer table.items td {
+      font-size: 5.4px;
+      padding: 2px 1px;
+      line-height: 1.12;
+    }
+
+    .bottom {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      break-inside: avoid;
+    }
+    .panel {
+      border: 1px solid #d8dfd9;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .panel h2 {
+      margin: 0;
+      padding: 8px 10px;
+      background: #fce8e8;
+      color: #c60000;
+      font-size: 12px;
+      font-weight: 800;
+      border-bottom: 1px solid #d8dfd9;
+    }
+    body.pdf-liganer .panel h2 { font-size: 9px; padding: 5px 8px; }
+    .kv div {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      border-bottom: 1px solid #d8dfd9;
+      min-height: 28px;
+    }
+    .kv div:last-child { border-bottom: 0; }
+    .kv strong,
+    .kv span {
+      display: grid;
+      place-items: center;
+      padding: 6px 8px;
+      text-align: center;
+    }
+    .kv strong {
+      color: #56635d;
+      font-size: 8px;
+      text-transform: uppercase;
+      border-right: 1px solid #d8dfd9;
+      background: #fafafa;
+    }
+    .kv span {
+      font-size: 11px;
+      font-weight: 700;
+    }
+    body.pdf-liganer .kv strong { font-size: 6px; }
+    body.pdf-liganer .kv span { font-size: 8px; }
+
+    .foot {
+      margin-top: 10px;
+      color: #8c949c;
+      font-size: 9px;
+      text-align: center;
+    }
   </style>
 </head>
-<body>
-  <button class="noprint" onclick="window.print()">Imprimir / salvar PDF</button>
-  <h1>Liganer · Orçamento (${model.name})</h1>
-  <div class="meta">Nº ${number} · ${now} · ${title}</div>
-  <p><strong>Cliente:</strong> ${escapeHtml(client.name || '—')}<br/>
-  <strong>CNPJ:</strong> ${escapeHtml(client.cnpj || '—')}</p>
-  <table>
+<body class="${pdfClass}">
+  <div class="print-actions">
+    <button type="button" onclick="window.print()">Salvar em PDF</button>
+  </div>
+
+  <header class="banner">
+    <div class="brand">
+      <img src="${escapeHtml(logo)}" alt="Liganer" width="40" height="40" />
+      <div>
+        <h1>Liganer</h1>
+        <p>Orçamento de chapas e bobinas · ${escapeHtml(variantLabel)}</p>
+      </div>
+    </div>
+    <div class="banner-meta">
+      <div><strong>Nº ${escapeHtml(number)}</strong></div>
+      <div>${escapeHtml(now)}</div>
+      <div>${rows.length} item(ns)</div>
+    </div>
+  </header>
+
+  <section class="client-card">
+    <article>
+      <span>Cliente</span>
+      <strong>${escapeHtml(client.name || '—')}</strong>
+    </article>
+    <article>
+      <span>CNPJ</span>
+      <strong>${escapeHtml(client.cnpj || '—')}</strong>
+    </article>
+    <article>
+      <span>Modelo</span>
+      <strong>${escapeHtml(model.name)}</strong>
+    </article>
+  </section>
+
+  <table class="items">
     <thead>
-      <tr><th>#</th>${fields.map((f) => `<th>${escapeHtml(fieldLabel(f.label))}</th>`).join('')}</tr>
+      <tr>
+        <th class="item-no">Item</th>
+        ${fields
+          .map((field) => `<th>${escapeHtml(itemHeaderLabel(field.label))}</th>`)
+          .join('')}
+      </tr>
     </thead>
     <tbody>${itemRows}</tbody>
   </table>
-  <div class="grid">
-    <div class="box">
-      <h2>Totais</h2>
-      ${summaryRows.map(([k, v]) => `<div><strong>${k}:</strong> ${v}</div>`).join('')}
-    </div>
-    <div class="box">
-      <h2>Condições</h2>
-      ${
-        footer.length
-          ? footer
-              .map(
-                (f) =>
-                  `<div><strong>${escapeHtml(fieldLabel(f.label))}:</strong> ${escapeHtml(
-                    displayFieldValue(conditions[f.key], f),
-                  )}</div>`,
-              )
-              .join('')
-          : '<div>—</div>'
-      }
-    </div>
+
+  <div class="bottom">
+    ${summaryHtml}
+    ${conditionsHtml}
   </div>
-  <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),300))</script>
+
+  <p class="foot">Liganer · Documento gerado automaticamente · ${escapeHtml(variantLabel)}</p>
+  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 350))</script>
 </body>
 </html>`
 
@@ -189,6 +451,7 @@ export function exportPdf(
     alert('O navegador bloqueou a janela de PDF. Permita pop-ups para exportar.')
     return
   }
+  win.document.open()
   win.document.write(html)
   win.document.close()
 }
