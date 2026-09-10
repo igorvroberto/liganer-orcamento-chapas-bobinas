@@ -90,7 +90,8 @@ function CellControl({
   const cascadeLocked =
     (field.key === 'acabamento' && !String(row.tipo ?? '').trim()) ||
     (field.key === 'espessura' &&
-      (!String(row.tipo ?? '').trim() || !String(row.acabamento ?? '').trim()))
+      (!String(row.tipo ?? '').trim() || !String(row.acabamento ?? '').trim())) ||
+    (field.key === 'comprimento' && isBobinaMaterial(row))
   const locked = Boolean(field.locked || cascadeLocked)
 
   if (Array.isArray(field.options)) {
