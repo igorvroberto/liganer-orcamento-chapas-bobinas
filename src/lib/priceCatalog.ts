@@ -303,8 +303,23 @@ export async function loadPriceCatalogFromExcel(
   }
 }
 
-/** Opções de select derivadas da planilha (ou do JSON de fallback). */
-export function getCatalogSelectOptions(): CatalogSelectOptions {
+/** Opções de select derivadas da planilha (cascade como blanks-slitters). */
+export type CatalogOptionFilters = {
+  tipo?: unknown
+  acabamento?: unknown
+}
+
+/**
+ * - tipo: sempre todos os tipos da planilha
+ * - acabamento: só os que existem para o tipo (vazio se tipo não informado)
+ * - espessura: só as que existem para tipo+acabamento (vazio se faltar algum)
+ * - pvc: global (colunas da planilha)
+ */
+export function getCatalogSelectOptions(
+  filters: CatalogOptionFilters = {},
+): CatalogSelectOptions {
+  const tipoFilter = filters.tipo ? normalizeTipo(filters.tipo) : ''
+  const acabFilter = filters.acabamento ? normalizeAcabamento(filters.acabamento) : ''
   const tipos: string[] = []
   const acabamentos: string[] = []
   const espessuras: number[] = []
@@ -317,14 +332,20 @@ export function getCatalogSelectOptions(): CatalogSelectOptions {
       seenTipo.add(row.tipo)
       tipos.push(row.tipo)
     }
-    if (row.acabamento) {
+
+    if (tipoFilter && row.tipo !== tipoFilter) continue
+
+    if (tipoFilter && row.acabamento) {
       const label = displayAcabamentoOption(row.acabamento)
       if (!seenAcab.has(label)) {
         seenAcab.add(label)
         acabamentos.push(label)
       }
     }
-    if (row.espessura && !seenEsp.has(row.espessura)) {
+
+    if (acabFilter && row.acabamento !== acabFilter) continue
+
+    if (tipoFilter && acabFilter && row.espessura && !seenEsp.has(row.espessura)) {
       seenEsp.add(row.espessura)
       espessuras.push(row.espessura)
     }
@@ -343,6 +364,35 @@ export function getCatalogSelectOptions(): CatalogSelectOptions {
     ],
     espessura: espessuras.map(formatThicknessOption),
   }
+}
+
+/** Compara espessura da linha com opção do select (ex.: 0.4 ↔ "0,40"). */
+export function thicknessOptionValue(value: unknown): string {
+  const n = thicknessKey(value)
+  return n ? formatThicknessOption(n) : ''
+}
+
+/** Limpa acabamento/espessura se deixarem de existir após mudar o filtro pai. */
+export function pruneInvalidCatalogSelections(row: ItemRow): ItemRow {
+  const next: ItemRow = { ...row }
+  const byTipo = getCatalogSelectOptions({ tipo: next.tipo })
+  const acab = String(next.acabamento ?? '')
+  if (acab && !byTipo.acabamento.includes(acab) && !byTipo.acabamento.includes(displayAcabamentoOption(acab))) {
+    next.acabamento = ''
+    next.espessura = ''
+    return next
+  }
+  if (acab) {
+    next.acabamento = displayAcabamentoOption(acab)
+  }
+  const byPair = getCatalogSelectOptions({ tipo: next.tipo, acabamento: next.acabamento })
+  const esp = thicknessOptionValue(next.espessura)
+  if (esp && !byPair.espessura.includes(esp)) {
+    next.espessura = ''
+  } else if (esp) {
+    next.espessura = esp
+  }
+  return next
 }
 
 export function findPriceRow(row: ItemRow): PriceCatalogRow | null {

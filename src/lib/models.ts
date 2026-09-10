@@ -266,16 +266,16 @@ export function withCatalogFieldOptions(
   options: CatalogSelectOptions,
 ): FieldDef[] {
   return fields.map((field) => {
-    if (field.key === 'tipo' && options.tipo.length) {
-      return { ...field, options: options.tipo }
+    if (field.key === 'tipo') {
+      return { ...field, options: options.tipo.length ? options.tipo : field.options }
     }
-    if (field.key === 'acabamento' && options.acabamento.length) {
+    if (field.key === 'acabamento') {
       return { ...field, options: options.acabamento }
     }
-    if (field.key === 'pvc' && options.pvc.length) {
-      return { ...field, options: options.pvc }
+    if (field.key === 'pvc') {
+      return { ...field, options: options.pvc.length ? options.pvc : field.options }
     }
-    if (field.key === 'espessura' && options.espessura.length) {
+    if (field.key === 'espessura') {
       return { ...field, options: options.espessura }
     }
     return field
