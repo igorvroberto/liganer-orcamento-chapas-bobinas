@@ -744,7 +744,7 @@ export default function App() {
       )}
 
       <section className="card toolbar-card">
-        <div className="grid-3">
+        <div className="grid-2">
           <label className="field">
             <span>Nome do cliente</span>
             <input
