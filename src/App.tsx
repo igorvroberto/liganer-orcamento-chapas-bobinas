@@ -158,6 +158,15 @@ function CellControl({
     )
   }
 
+  const showGroupedNumber =
+    field.type === 'number' && field.useGrouping !== false && (field.fractionDigits ?? 2) === 0
+  const groupedDisplay =
+    showGroupedNumber && value !== '' && value != null
+      ? formatNumber(numericValue(value), 0, true)
+      : value == null
+        ? ''
+        : String(value)
+
   return (
     <input
       className="cell-control"
@@ -167,8 +176,15 @@ function CellControl({
           ? 'decimal'
           : 'text'
       }
-      value={value == null ? '' : String(value)}
-      onChange={(e) => onChange(e.target.value)}
+      value={groupedDisplay}
+      onChange={(e) => {
+        if (!showGroupedNumber) {
+          onChange(e.target.value)
+          return
+        }
+        const digits = e.target.value.replace(/\D/g, '')
+        onChange(digits === '' ? '' : Number(digits))
+      }}
       aria-label={fieldLabel(field.label)}
     />
   )
