@@ -113,12 +113,17 @@ export function exportPdf(
 ): void {
   if (!rows.length) return
   const fields = exportableFields(model, kind)
-  const footer = footerFields(model).filter((f) => String(conditions[f.key] ?? '').trim())
+  const footer = footerFields(model).filter((f) => {
+    if (!String(conditions[f.key] ?? '').trim()) return false
+    if (kind === 'cliente' && f.key === 'frete_percentual') return false
+    return true
+  })
   const number = localPrintNumber()
   const now = new Date().toLocaleString('pt-BR')
   const variantLabel = kind === 'liganer' ? 'Uso interno Liganer' : 'Proposta comercial'
   const pdfClass = kind === 'liganer' ? 'pdf-liganer' : 'pdf-cliente'
   const logo = logoUrl()
+  const isCliente = kind === 'cliente'
 
   const itemRows = rows
     .map((row, index) => {
@@ -264,9 +269,12 @@ export function exportPdf(
 
     .client-card {
       display: grid;
-      grid-template-columns: 1.4fr 1fr 0.8fr;
+      grid-template-columns: 1.4fr 1fr;
       gap: 10px;
       margin-bottom: 12px;
+    }
+    body.pdf-liganer .client-card {
+      grid-template-columns: 1.4fr 1fr 0.8fr;
     }
     .client-card article {
       border: 1px solid #d8dfd9;
@@ -399,7 +407,11 @@ export function exportPdf(
       <img src="${escapeHtml(logo)}" alt="Liganer" width="40" height="40" />
       <div>
         <h1>Liganer</h1>
-        <p>Orçamento de chapas e bobinas · ${escapeHtml(variantLabel)}</p>
+        ${
+          isCliente
+            ? ''
+            : `<p>Orçamento de chapas e bobinas · ${escapeHtml(variantLabel)}</p>`
+        }
       </div>
     </div>
     <div class="banner-meta">
@@ -418,10 +430,14 @@ export function exportPdf(
       <span>CNPJ</span>
       <strong>${escapeHtml(client.cnpj || '—')}</strong>
     </article>
-    <article>
+    ${
+      isCliente
+        ? ''
+        : `<article>
       <span>Modelo</span>
       <strong>${escapeHtml(model.name)}</strong>
-    </article>
+    </article>`
+    }
   </section>
 
   <table class="items">
@@ -441,7 +457,11 @@ export function exportPdf(
     ${conditionsHtml}
   </div>
 
-  <p class="foot">Liganer · Documento gerado automaticamente · ${escapeHtml(variantLabel)}</p>
+  ${
+    isCliente
+      ? ''
+      : `<p class="foot">Liganer · Documento gerado automaticamente · ${escapeHtml(variantLabel)}</p>`
+  }
   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 350))</script>
 </body>
 </html>`
