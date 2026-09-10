@@ -56,6 +56,13 @@ function footerFieldsModule(): FieldDef[] {
       aliases: ['observacoes gerais', 'observações gerais', 'observacoes', 'observações'],
       section: 'Rodapé',
     },
+    {
+      key: 'frete_percentual',
+      label: 'Frete (%)',
+      aliases: ['frete', 'percentual frete', 'frete percentual', 'frete %'],
+      type: 'percent',
+      section: 'Rodapé',
+    },
   ]
 }
 
@@ -238,13 +245,6 @@ export const MODELS: ModelDef[] = [
       { key: 'preco_servico', label: 'Preço\nserviço', aliases: ['preco servico', 'preço serviço'], type: 'currency' },
       { key: 'descricao_servico', label: 'Descrição\nserviço', aliases: ['descricao servico', 'descrição serviço'] },
       calcField('_preco_total', 'Preço\ntotal', 'currency', 'precoTotal'),
-      {
-        key: 'frete_percentual',
-        label: 'Frete\n%',
-        aliases: ['frete', 'percentual frete', 'frete percentual', 'frete %'],
-        type: 'percent',
-        askWhenNew: true,
-      },
       calcField('_preco_sem_ipi', 'Preço\nsem IPI', 'currency', 'precoSemIpi'),
       ...supplierFields(),
       ...footerFieldsModule(),

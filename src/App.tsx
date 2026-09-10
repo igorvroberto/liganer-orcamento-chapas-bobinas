@@ -7,6 +7,7 @@ import {
   formatCnpj,
   formatCurrency,
   formatNumber,
+  formatPercent,
 } from './lib/format'
 import {
   fieldLabel,
@@ -905,6 +906,10 @@ export default function App() {
           <div className="summary-item">
             <span>Total</span>
             <strong>{formatCurrency(summary.total)}</strong>
+          </div>
+          <div className="summary-item">
+            <span>Frete</span>
+            <strong>{formatPercent(summary.frete)}</strong>
           </div>
         </div>
       </section>

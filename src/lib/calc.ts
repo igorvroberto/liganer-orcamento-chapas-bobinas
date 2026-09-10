@@ -55,7 +55,7 @@ export function sheetUnitWeight(row: ItemRow): number {
 export function calculateRow(
   modelId: string,
   row: ItemRow,
-  _conditions: Conditions,
+  conditions: Conditions,
 ): RowCalculation {
   const unidade = numericValue(row.unidade)
   const fatorUtilizado = numericValue(row.fator_utilizado)
@@ -66,7 +66,7 @@ export function calculateRow(
   const precoServico = numericValue(row.preco_servico)
   const largura = numericValue(row.largura)
   const larguraBobina = numericValue(row.largura_bobina)
-  const frete = percentRate(row.frete_percentual)
+  const frete = percentRate(conditions.frete_percentual)
   const icms = catalog?.icms ?? percentRate(row.icms)
 
   const manualWeight = usesManualUnitWeight(modelId, row)
@@ -126,5 +126,6 @@ export function calculateSummary(
   }
   const ipi = subtotal * 0.0325
   const total = subtotal + ipi
-  return { totalKg, subtotal, ipi, total, frete: 0 }
+  const frete = percentRate(conditions.frete_percentual)
+  return { totalKg, subtotal, ipi, total, frete }
 }
