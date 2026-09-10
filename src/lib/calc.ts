@@ -87,9 +87,9 @@ export function calculateRow(
     perdaMm < 100 ? perdaPercentual : perdaMm < 300 ? perdaPercentual * 0.3 : perdaPercentual * 0.2
   const acrescimoPerdaValor = precoBobinaFator100 * acrescimoPerdaPercentual
 
-  const basePrecoTotal = precoFatorUtilizado
-  const precoTotal = basePrecoTotal + precoServico
-  const precoSemIpi = frete === 0 ? precoTotal : precoTotal + precoTotal * frete
+  const basePreco = precoFatorUtilizado + precoServico
+  const precoTotal = frete === 0 ? basePreco : basePreco + basePreco * frete
+  const precoSemIpi = precoTotal
   const subtotal = pesoTotal && precoSemIpi ? pesoTotal * precoSemIpi : 0
 
   return {
