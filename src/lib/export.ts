@@ -122,7 +122,6 @@ export function exportPdf(
   const now = new Date().toLocaleString('pt-BR')
   const pdfClass = kind === 'liganer' ? 'pdf-liganer' : 'pdf-cliente'
   const logo = logoUrl()
-  const isCliente = kind === 'cliente'
 
   const itemRows = rows
     .map((row, index) => {
@@ -250,13 +249,7 @@ export function exportPdf(
       line-height: 1.1;
       font-weight: 800;
     }
-    .brand p {
-      margin: 3px 0 0;
-      font-size: 11px;
-      opacity: 0.92;
-    }
     body.pdf-liganer .brand h1 { font-size: 14px; }
-    body.pdf-liganer .brand p { font-size: 9px; }
     .banner-meta {
       text-align: right;
       font-size: 11px;
@@ -387,13 +380,6 @@ export function exportPdf(
     }
     body.pdf-liganer .kv strong { font-size: 6px; }
     body.pdf-liganer .kv span { font-size: 8px; }
-
-    .foot {
-      margin-top: 10px;
-      color: #8c949c;
-      font-size: 9px;
-      text-align: center;
-    }
   </style>
 </head>
 <body class="${pdfClass}">
