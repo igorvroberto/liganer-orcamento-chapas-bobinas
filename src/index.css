@@ -215,7 +215,7 @@ h1 {
 
 .card {
   background: var(--paper);
-  border: 1px solid rgba(216, 223, 217, 0.9);
+  border: 1px solid rgba(224, 224, 224, 0.9);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 18px;
