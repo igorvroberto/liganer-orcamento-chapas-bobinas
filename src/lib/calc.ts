@@ -54,7 +54,7 @@ export function sheetUnitWeight(row: ItemRow): number {
 export function calculateRow(
   modelId: string,
   row: ItemRow,
-  conditions: Conditions,
+  _conditions: Conditions,
 ): RowCalculation {
   const unidade = numericValue(row.unidade)
   const fatorUtilizado = numericValue(row.fator_utilizado)
@@ -65,7 +65,7 @@ export function calculateRow(
   const precoServico = numericValue(row.preco_servico)
   const largura = numericValue(row.largura)
   const larguraBobina = numericValue(row.largura_bobina)
-  const frete = percentRate(conditions.frete_percentual)
+  const frete = percentRate(row.frete_percentual)
   const icms = catalog?.icms ?? percentRate(row.icms)
 
   const manualWeight = usesManualUnitWeight(modelId, row)
@@ -87,9 +87,8 @@ export function calculateRow(
     perdaMm < 100 ? perdaPercentual : perdaMm < 300 ? perdaPercentual * 0.3 : perdaPercentual * 0.2
   const acrescimoPerdaValor = precoBobinaFator100 * acrescimoPerdaPercentual
 
-  const basePreco = precoFatorUtilizado + precoServico
-  const precoTotal = frete === 0 ? basePreco : basePreco + basePreco * frete
-  const precoSemIpi = precoTotal
+  const precoTotal = precoFatorUtilizado + precoServico
+  const precoSemIpi = frete === 0 ? precoTotal : precoTotal + precoTotal * frete
   const subtotal = pesoTotal && precoSemIpi ? pesoTotal * precoSemIpi : 0
 
   return {
@@ -126,6 +125,5 @@ export function calculateSummary(
   }
   const ipi = subtotal * 0.0325
   const total = subtotal + ipi
-  const frete = percentRate(conditions.frete_percentual)
-  return { totalKg, subtotal, ipi, total, frete }
+  return { totalKg, subtotal, ipi, total, frete: 0 }
 }
