@@ -120,10 +120,8 @@ export function exportPdf(
   })
   const number = localPrintNumber()
   const now = new Date().toLocaleString('pt-BR')
-  const variantLabel = kind === 'liganer' ? 'Uso interno Liganer' : 'Proposta comercial'
   const pdfClass = kind === 'liganer' ? 'pdf-liganer' : 'pdf-cliente'
   const logo = logoUrl()
-  const isCliente = kind === 'cliente'
 
   const itemRows = rows
     .map((row, index) => {
@@ -251,13 +249,7 @@ export function exportPdf(
       line-height: 1.1;
       font-weight: 800;
     }
-    .brand p {
-      margin: 3px 0 0;
-      font-size: 11px;
-      opacity: 0.92;
-    }
     body.pdf-liganer .brand h1 { font-size: 14px; }
-    body.pdf-liganer .brand p { font-size: 9px; }
     .banner-meta {
       text-align: right;
       font-size: 11px;
@@ -271,9 +263,6 @@ export function exportPdf(
       grid-template-columns: 1.4fr 1fr;
       gap: 10px;
       margin-bottom: 12px;
-    }
-    body.pdf-liganer .client-card {
-      grid-template-columns: 1.4fr 1fr 0.8fr;
     }
     .client-card article {
       border: 1px solid #d8dfd9;
@@ -343,12 +332,15 @@ export function exportPdf(
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+      align-items: start;
       break-inside: avoid;
     }
     .panel {
       border: 1px solid #d8dfd9;
       border-radius: 8px;
       overflow: hidden;
+      height: fit-content;
+      align-self: start;
     }
     .panel h2 {
       margin: 0;
@@ -357,6 +349,7 @@ export function exportPdf(
       color: #c60000;
       font-size: 12px;
       font-weight: 800;
+      text-align: center;
       border-bottom: 1px solid #d8dfd9;
     }
     body.pdf-liganer .panel h2 { font-size: 9px; padding: 5px 8px; }
@@ -387,13 +380,6 @@ export function exportPdf(
     }
     body.pdf-liganer .kv strong { font-size: 6px; }
     body.pdf-liganer .kv span { font-size: 8px; }
-
-    .foot {
-      margin-top: 10px;
-      color: #8c949c;
-      font-size: 9px;
-      text-align: center;
-    }
   </style>
 </head>
 <body class="${pdfClass}">
@@ -406,11 +392,6 @@ export function exportPdf(
       <img src="${escapeHtml(logo)}" alt="Liganer" width="40" height="40" />
       <div>
         <h1>Liganer</h1>
-        ${
-          isCliente
-            ? ''
-            : `<p>Orçamento de chapas e bobinas · ${escapeHtml(variantLabel)}</p>`
-        }
       </div>
     </div>
     <div class="banner-meta">
@@ -429,14 +410,6 @@ export function exportPdf(
       <span>CNPJ</span>
       <strong>${escapeHtml(client.cnpj || '—')}</strong>
     </article>
-    ${
-      isCliente
-        ? ''
-        : `<article>
-      <span>Modelo</span>
-      <strong>${escapeHtml(model.name)}</strong>
-    </article>`
-    }
   </section>
 
   <table class="items">
@@ -456,11 +429,6 @@ export function exportPdf(
     ${conditionsHtml}
   </div>
 
-  ${
-    isCliente
-      ? ''
-      : `<p class="foot">Liganer · Documento gerado automaticamente · ${escapeHtml(variantLabel)}</p>`
-  }
   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 350))</script>
 </body>
 </html>`
