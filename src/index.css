@@ -1,6 +1,6 @@
 :root {
-  --bg: #f5f7f4;
-  --bg-accent: #eef2ef;
+  --bg: #f2f2f2;
+  --bg-accent: #f2f2f2;
   --paper: #ffffff;
   --panel-warm: #fbfbf7;
   --ink: #17211d;
@@ -273,7 +273,7 @@ textarea:focus {
 input:disabled,
 select:disabled {
   color: #66726d;
-  background: #eef2ef;
+  background: #f2f2f2;
 }
 
 .field.boolean {
@@ -443,7 +443,7 @@ select:disabled {
 }
 
 .cell-control:disabled {
-  background: #eef2ef;
+  background: #f2f2f2;
   color: #66726d;
 }
 
@@ -484,7 +484,7 @@ select:disabled {
 }
 
 .summary-item {
-  background: #eef2ef;
+  background: #f2f2f2;
   border-radius: 8px;
   padding: 12px;
 }
