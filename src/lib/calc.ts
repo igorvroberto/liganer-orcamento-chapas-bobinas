@@ -16,7 +16,8 @@ export function numericValue(value: unknown): number {
 export function percentRate(value: unknown): number {
   const n = numericValue(value)
   if (!n) return 0
-  return n > 1 ? n / 100 : n
+  // 1 = 1% (não 100%). Só valores < 1 são tratados como taxa já decimal (ex.: 0,05).
+  return n >= 1 ? n / 100 : n
 }
 
 /** Densidade padrão usada no plugin legado (kg/mm³ efetiva via fator 8). */
