@@ -667,9 +667,13 @@ export default function App() {
   return (
     <div className="app-shell">
       <div className="brand-row">
-        <div className="brand-mark" aria-hidden>
-          LG
-        </div>
+        <img
+          className="brand-mark"
+          src={`${import.meta.env.BASE_URL}liganer_favicon.webp`}
+          alt="Liganer"
+          width={42}
+          height={42}
+        />
         <div>
           <p className="eyebrow">Liganer · Aço inoxidável</p>
           <h1>Orçamento comercial</h1>

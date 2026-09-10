@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/webp" href="/liganer_favicon.webp" />
+    <link rel="apple-touch-icon" href="/liganer_favicon.webp" />
     <title>Liganer Vendas</title>
     <style>
       :root {
@@ -49,23 +51,50 @@
         padding: 28px;
       }
 
-      .eyebrow {
-        margin: 0 0 10px;
+      .hero-brand {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .hero-brand img {
+        width: 56px;
+        height: 56px;
+        border-radius: 10px;
+        object-fit: contain;
+        background: #fff;
+        flex: none;
+      }
+
+      .brand-name {
+        margin: 0;
         color: var(--brand);
-        font-size: 0.76rem;
+        font-size: clamp(1.55rem, 3.5vw, 2.1rem);
         font-weight: 800;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+
+      .brand-tag {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 700;
         text-transform: uppercase;
+        letter-spacing: 0.04em;
       }
 
       h1 {
         margin: 0;
-        font-size: clamp(1.9rem, 4vw, 2.7rem);
-        line-height: 1.08;
+        font-size: clamp(1.35rem, 3vw, 1.75rem);
+        line-height: 1.15;
         color: var(--ink);
+        font-weight: 700;
       }
 
       .lede {
-        margin: 14px 0 0;
+        margin: 10px 0 0;
         color: var(--muted);
         font-size: 1rem;
         max-width: 62ch;
@@ -118,7 +147,18 @@
   <body>
     <main>
       <section class="hero">
-        <p class="eyebrow">Liganer</p>
+        <div class="hero-brand">
+          <img
+            src="/liganer_favicon.webp"
+            alt="Liganer"
+            width="56"
+            height="56"
+          />
+          <div>
+            <p class="brand-name">Liganer</p>
+            <p class="brand-tag">Aço inoxidável</p>
+          </div>
+        </div>
         <h1>Sistemas de vendas</h1>
         <p class="lede">
           Acesso rápido aos sistemas atualmente publicados em vendas.liganer.com.br.
