@@ -23,6 +23,7 @@ jobs:
         run: |
           mkdir -p root-dist
           cp deploy/root-index/index.html root-dist/index.html
+          cp deploy/root-index/liganer_favicon.webp root-dist/liganer_favicon.webp
 
       - name: Deploy root index via FTP/FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
