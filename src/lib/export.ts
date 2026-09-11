@@ -188,25 +188,23 @@ export function exportPdf(
       </div>
     </section>`
 
-  const conditionsHtml = `
+  const conditionsHtml = footer.length
+    ? `
     <section class="panel">
       <h2>Condições</h2>
       <div class="kv">
-        ${
-          footer.length
-            ? footer
-                .map(
-                  (field) => `
+        ${footer
+          .map(
+            (field) => `
           <div>
             <strong>${escapeHtml(fieldLabel(field.label))}</strong>
             <span>${escapeHtml(displayFieldValue(conditions[field.key], field))}</span>
           </div>`,
-                )
-                .join('')
-            : '<div><strong>—</strong><span>Sem condições preenchidas</span></div>'
-        }
+          )
+          .join('')}
       </div>
     </section>`
+    : ''
 
   const html = `<!doctype html>
 <html lang="pt-BR">
