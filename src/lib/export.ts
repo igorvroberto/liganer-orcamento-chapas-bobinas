@@ -206,6 +206,28 @@ export function exportPdf(
     </section>`
     : ''
 
+  const clientName = String(client.name ?? '').trim()
+  const clientCnpj = String(client.cnpj ?? '').trim()
+  const clientArticles = [
+    clientName
+      ? `<article>
+      <span>Cliente</span>
+      <strong>${escapeHtml(clientName)}</strong>
+    </article>`
+      : '',
+    clientCnpj
+      ? `<article>
+      <span>CNPJ</span>
+      <strong>${escapeHtml(clientCnpj)}</strong>
+    </article>`
+      : '',
+  ].filter(Boolean)
+  const clientCardHtml = clientArticles.length
+    ? `<section class="client-card${clientArticles.length === 1 ? ' solo' : ''}">
+    ${clientArticles.join('\n    ')}
+  </section>`
+    : ''
+
   const html = `<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -285,6 +307,9 @@ export function exportPdf(
       grid-template-columns: 1.4fr 1fr;
       gap: 10px;
       margin-bottom: 12px;
+    }
+    .client-card.solo {
+      grid-template-columns: 1fr;
     }
     .client-card article {
       border: 1px solid #d8dfd9;
@@ -426,16 +451,7 @@ export function exportPdf(
     </div>
   </header>
 
-  <section class="client-card">
-    <article>
-      <span>Cliente</span>
-      <strong>${escapeHtml(client.name || '—')}</strong>
-    </article>
-    <article>
-      <span>CNPJ</span>
-      <strong>${escapeHtml(client.cnpj || '—')}</strong>
-    </article>
-  </section>
+  ${clientCardHtml}
 
   <table class="items">
     <thead>
