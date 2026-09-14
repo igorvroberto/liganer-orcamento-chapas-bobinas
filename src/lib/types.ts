@@ -80,4 +80,6 @@ export type BudgetRecord = {
   conditions: Conditions
   summary: Summary
   number?: string
+  /** Origem do salvamento, ex.: botão Salvar ou PDF cliente. */
+  source?: string
 }

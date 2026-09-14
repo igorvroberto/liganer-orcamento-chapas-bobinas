@@ -687,10 +687,16 @@ export default function App() {
     else startListening(target)
   }
 
-  async function handleSave() {
+  async function saveBudget(source: 'salvar' | 'pdf-cliente' = 'salvar'): Promise<boolean> {
     if (!rows.length) {
-      setStatus({ text: 'Adicione ao menos um item antes de salvar.', kind: 'error' })
-      return
+      setStatus({
+        text:
+          source === 'pdf-cliente'
+            ? 'Adicione ao menos um item antes de exportar o PDF.'
+            : 'Adicione ao menos um item antes de salvar.',
+        kind: 'error',
+      })
+      return false
     }
     const record = {
       id: `orcamento-${Date.now()}`,
@@ -701,17 +707,37 @@ export default function App() {
       rows,
       conditions,
       summary,
+      source,
     }
     pushSavedBudget(record)
     const remote = await saveBudgetRemote(record, config)
     if (remote.ok) {
-      setStatus({ text: remote.number ? `Orçamento salvo: ${remote.number}.` : 'Orçamento salvo.', kind: 'ok' })
-    } else {
+      const prefix = source === 'pdf-cliente' ? 'PDF cliente gerado e orçamento salvo' : 'Orçamento salvo'
       setStatus({
-        text: `Salvo neste navegador. ${remote.error || ''}`.trim(),
+        text: remote.number ? `${prefix}: ${remote.number}.` : `${prefix}.`,
+        kind: 'ok',
+      })
+    } else {
+      const localNote =
+        source === 'pdf-cliente'
+          ? 'PDF cliente gerado. Salvo neste navegador.'
+          : 'Salvo neste navegador.'
+      setStatus({
+        text: `${localNote} ${remote.error || ''}`.trim(),
         kind: config.syncSecret ? 'error' : 'ok',
       })
     }
+    return true
+  }
+
+  async function handleSave() {
+    await saveBudget('salvar')
+  }
+
+  async function handlePdfCliente() {
+    const ok = await saveBudget('pdf-cliente')
+    if (!ok) return
+    exportPdf('cliente', model, client, rows, conditions, summary)
   }
 
   const itemListening = autoListen && dictationTarget === 'item'
@@ -985,7 +1011,7 @@ export default function App() {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => exportPdf('cliente', model, client, rows, conditions, summary)}
+            onClick={() => void handlePdfCliente()}
           >
             PDF cliente
           </button>
