@@ -48,7 +48,6 @@ Acabamento é filtrado pelo tipo; espessura pelo par tipo+acabamento (como em bl
 - Cliente (nome / CNPJ), itens, condições (pagamento, frete CIF/FOB, expedição SP/CE…)
 - Preço fator 100 e ICMS pela planilha Excel
 - Peso, fator utilizado, frete %, IPI 3,25%
-- Ditado por voz (Web Speech API)
 - Exportação: PDF cliente, PDF Liganer, Excel, CSV
 - Salvar orçamento (local e/ou API com `syncSecret`)
 
