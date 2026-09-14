@@ -73,9 +73,23 @@ export function pushSavedBudget(record: BudgetRecord): void {
 
 export function upsertSavedBudget(record: BudgetRecord): void {
   const list = loadSavedBudgets()
-  const index = list.findIndex((item) => item.id === record.id)
-  if (index >= 0) list[index] = record
+  const index = list.findIndex(
+    (item) =>
+      item.id === record.id ||
+      (record.number && item.number === record.number) ||
+      (record.name && item.name === record.name),
+  )
+  if (index >= 0) list[index] = { ...list[index], ...record }
   else list.push(record)
+  setItem(SAVED_KEY, JSON.stringify(list))
+}
+
+export function removeSavedBudget(idOrNumber: string): void {
+  const key = String(idOrNumber ?? '').trim()
+  if (!key) return
+  const list = loadSavedBudgets().filter(
+    (item) => item.id !== key && item.number !== key && item.name !== key,
+  )
   setItem(SAVED_KEY, JSON.stringify(list))
 }
 
@@ -170,6 +184,32 @@ export async function fetchBudgetRemote(
       return { ok: false, error: 'Orçamento incompleto no servidor.' }
     }
     return { ok: true, record: data }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Falha de rede' }
+  }
+}
+
+export async function deleteBudgetRemote(
+  number: string,
+  config: SyncConfig,
+): Promise<{ ok: boolean; error?: string }> {
+  const trimmed = String(number ?? '').trim()
+  if (!trimmed) return { ok: false, error: 'Número inválido.' }
+  if (!config.syncSecret) {
+    return { ok: false, error: 'Sync não configurado.' }
+  }
+  try {
+    const url = new URL(budgetsApiUrl(config), window.location.origin)
+    url.searchParams.set('number', trimmed)
+    const res = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        'X-Sync-Secret': config.syncSecret,
+      },
+    })
+    const data = (await res.json().catch(() => ({}))) as { error?: string }
+    if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}` }
+    return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Falha de rede' }
   }
