@@ -348,6 +348,12 @@ export function exportPdf(
       word-break: keep-all;
       overflow-wrap: normal;
     }
+    /* Reforça a borda direita por dentro: com zoom/scale a última 1px
+       costuma ser cortada por overflow/arredondamento. */
+    table.items th:last-child,
+    table.items td:last-child {
+      box-shadow: inset -1px 0 0 #d8dfd9;
+    }
     table.items th {
       background: #c60000;
       color: #fff;
@@ -380,12 +386,15 @@ export function exportPdf(
 
     .sheet-scale {
       width: 100%;
-      overflow: hidden;
+      overflow: visible;
     }
     .sheet {
       display: inline-block;
       min-width: 100%;
       transform-origin: top left;
+      /* Folga para a borda direita/inferior não sumir no print com zoom. */
+      padding-right: 1px;
+      padding-bottom: 1px;
     }
 
     .bottom {
@@ -497,7 +506,8 @@ export function exportPdf(
       const avail = scaleBox.clientWidth || document.body.clientWidth || window.innerWidth
       const needed = Math.max(sheet.scrollWidth, sheet.offsetWidth)
       if (!avail || !needed) return
-      const scale = Math.min(1, avail / needed)
+      // Reserva 2px para a borda direita não ser cortada no arredondamento do zoom.
+      const scale = Math.min(1, (avail - 2) / needed)
       if (scale >= 0.999) return
       if ('zoom' in sheet.style) {
         sheet.style.zoom = String(scale)
