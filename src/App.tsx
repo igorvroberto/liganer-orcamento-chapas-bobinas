@@ -973,11 +973,6 @@ export default function App() {
           <h1>Orçamento de chapas e bobinas</h1>
         </div>
       </div>
-      <p className="lede">
-        Preencha por voz ou na tabela — diga o valor do campo atual, “pular” para avançar, ou “nova
-        linha” para o próximo item.
-      </p>
-
       {model.status === 'pending' && (
         <div className="notice">
           O modelo <strong>{model.name}</strong> ainda está pendente (campos placeholder). Use Chapas,
