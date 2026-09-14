@@ -533,6 +533,25 @@ select:disabled {
   margin-top: 4px;
 }
 
+.editing-banner {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--accent-light);
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+
+.saved-budget-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.saved-budgets-table tr.is-editing td {
+  background: rgba(198, 0, 0, 0.04);
+}
+
 .saved-budgets-table {
   width: 100%;
   border-collapse: collapse;

@@ -25,6 +25,7 @@ import {
   type SpeechRecognitionLike,
 } from './lib/speech'
 import {
+  deleteBudgetRemote,
   fetchBudgetRemote,
   findSavedBudget,
   loadConfig,
@@ -33,6 +34,7 @@ import {
   localPrintNumber,
   mergeBudgetLists,
   pushSavedBudget,
+  removeSavedBudget,
   saveBudgetRemote,
   saveDraft,
   savedBudgetsAsListItems,
@@ -44,7 +46,7 @@ import {
   loadPriceCatalogFromExcel,
   pruneInvalidCatalogSelections,
 } from './lib/priceCatalog'
-import type { BudgetListItem, ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
+import type { BudgetListItem, BudgetRecord, ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
 
 type DictationTarget = 'item' | 'footer'
 
@@ -260,6 +262,11 @@ export default function App() {
   const [status, setStatus] = useState<{ text: string; kind?: 'ok' | 'error' }>({ text: '' })
   const [config, setConfig] = useState<SyncConfig>({})
   const [savedBudgets, setSavedBudgets] = useState<BudgetListItem[]>(() => savedBudgetsAsListItems())
+  const [editingBudget, setEditingBudget] = useState<{
+    id: string
+    number: string
+    createdAt?: string
+  } | null>(null)
   const [priceCatalogVersion, setPriceCatalogVersion] = useState(0)
   const [listening, setListening] = useState(false)
   const [autoListen, setAutoListen] = useState(false)
@@ -714,69 +721,17 @@ export default function App() {
     else startListening(target)
   }
 
-  async function savePdfClienteBudget(): Promise<string | null> {
-    if (!rows.length) {
-      setStatus({
-        text: 'Adicione ao menos um item antes de exportar o PDF.',
-        kind: 'error',
-      })
-      return null
-    }
-    const createdAt = new Date().toISOString()
-    let number = localPrintNumber()
-    const record = {
-      id: `orcamento-${Date.now()}`,
-      createdAt,
-      savedAt: createdAt,
-      modelId,
-      modelName: model.name,
-      client: { ...client },
-      rows,
-      conditions,
-      summary,
-      source: 'pdf-cliente' as const,
-      number,
-      name: number,
-    }
-    pushSavedBudget(record)
-    const remote = await saveBudgetRemote(record, config)
-    if (remote.ok && remote.number) {
-      number = remote.number
-      upsertSavedBudget({
-        ...record,
-        number,
-        name: number,
-        savedAt: new Date().toISOString(),
-      })
-      setStatus({
-        text: `PDF cliente gerado e orçamento salvo: ${number}.`,
-        kind: 'ok',
-      })
-    } else {
-      upsertSavedBudget(record)
-      setStatus({
-        text: `PDF cliente gerado. Salvo neste navegador${remote.error ? ` — ${remote.error}` : ''}.`.trim(),
-        kind: config.syncSecret ? 'error' : 'ok',
-      })
-    }
+  async function refreshSavedBudgetsList(nextConfig: SyncConfig = config) {
     const local = savedBudgetsAsListItems()
-    if (config.syncSecret) {
-      const listed = await listBudgetsRemote(config)
-      setSavedBudgets(listed.ok ? mergeBudgetLists(listed.items, local) : local)
-    } else {
+    if (!nextConfig.syncSecret) {
       setSavedBudgets(local)
+      return
     }
-    return number
+    const remote = await listBudgetsRemote(nextConfig)
+    setSavedBudgets(remote.ok ? mergeBudgetLists(remote.items, local) : local)
   }
 
-  async function handlePdfCliente() {
-    const number = await savePdfClienteBudget()
-    if (!number) return
-    exportPdf('cliente', model, client, rows, conditions, summary, { number })
-  }
-
-  async function openSavedPdfCliente(item: BudgetListItem) {
-    const key = item.number || item.name || item.id
+  async function resolveSavedRecord(item: BudgetListItem): Promise<BudgetRecord | null> {
     let record = findSavedBudget(item.id) || (item.number ? findSavedBudget(item.number) : null)
     if (!record && item.number && config.syncSecret) {
       const remote = await fetchBudgetRemote(item.number, config)
@@ -789,19 +744,87 @@ export default function App() {
         })
       } else {
         setStatus({
-          text: remote.error || 'Não foi possível abrir este orçamento.',
+          text: remote.error || 'Não foi possível carregar este orçamento.',
           kind: 'error',
         })
-        return
+        return null
       }
     }
-    if (!record?.rows?.length) {
+    if (!record) {
+      setStatus({ text: 'Orçamento não encontrado neste navegador.', kind: 'error' })
+      return null
+    }
+    return record
+  }
+
+  async function savePdfClienteBudget(): Promise<string | null> {
+    if (!rows.length) {
       setStatus({
-        text: 'Orçamento sem itens para gerar o PDF.',
+        text: 'Adicione ao menos um item antes de exportar o PDF.',
         kind: 'error',
       })
+      return null
+    }
+    const nowIso = new Date().toISOString()
+    const editing = editingBudget
+    let number = editing?.number || localPrintNumber()
+    const record = {
+      id: editing?.id || `orcamento-${Date.now()}`,
+      createdAt: editing?.createdAt || nowIso,
+      savedAt: nowIso,
+      modelId,
+      modelName: model.name,
+      client: { ...client },
+      rows,
+      conditions,
+      summary,
+      source: 'pdf-cliente' as const,
+      number,
+      name: number,
+    }
+    if (editing) upsertSavedBudget(record)
+    else pushSavedBudget(record)
+
+    const remote = await saveBudgetRemote(record, config)
+    if (remote.ok && remote.number) {
+      number = remote.number
+      upsertSavedBudget({
+        ...record,
+        number,
+        name: number,
+        savedAt: new Date().toISOString(),
+      })
+      setStatus({
+        text: editing
+          ? `Orçamento ${number} atualizado e PDF gerado.`
+          : `PDF cliente gerado e orçamento salvo: ${number}.`,
+        kind: 'ok',
+      })
+    } else {
+      upsertSavedBudget(record)
+      setStatus({
+        text: `PDF cliente gerado. Salvo neste navegador${remote.error ? ` — ${remote.error}` : ''}.`.trim(),
+        kind: config.syncSecret ? 'error' : 'ok',
+      })
+    }
+    setEditingBudget(null)
+    await refreshSavedBudgetsList()
+    return number
+  }
+
+  async function handlePdfCliente() {
+    const number = await savePdfClienteBudget()
+    if (!number) return
+    exportPdf('cliente', model, client, rows, conditions, summary, { number })
+  }
+
+  async function openSavedPdfCliente(item: BudgetListItem) {
+    const record = await resolveSavedRecord(item)
+    if (!record?.rows?.length) {
+      if (record) setStatus({ text: 'Orçamento sem itens para gerar o PDF.', kind: 'error' })
       return
     }
+    const key = record.number || item.number || item.name || item.id
     const savedModel = getModel(record.modelId || modelId)
     const savedConditions = record.conditions || {}
     const savedSummary =
@@ -813,12 +836,80 @@ export default function App() {
       record.rows,
       savedConditions,
       savedSummary,
-      { number: record.number || key },
+      { number: key },
     )
     setStatus({
-      text: `PDF do orçamento ${record.number || key} aberto.`,
+      text: `PDF do orçamento ${key} aberto.`,
       kind: 'ok',
     })
+  }
+
+  async function editSavedBudget(item: BudgetListItem) {
+    const record = await resolveSavedRecord(item)
+    if (!record?.rows?.length) {
+      if (record) setStatus({ text: 'Orçamento sem itens para editar.', kind: 'error' })
+      return
+    }
+    const number = record.number || item.number || item.name || item.id
+    const mid = record.modelId || modelId
+    setClient({
+      name: record.client?.name || '',
+      cnpj: record.client?.cnpj || '',
+    })
+    setRowsByModel((prev) => ({
+      ...prev,
+      [mid]: record.rows.map((row) => ({ ...row })),
+    }))
+    setDraftsByModel((prev) => ({
+      ...prev,
+      [mid]: { ...(record.conditions || {}) },
+    }))
+    setActiveRowIndex(0)
+    setItemStepIndex(0)
+    setFooterStepIndex(0)
+    setEditingBudget({
+      id: record.id,
+      number,
+      createdAt: record.createdAt,
+    })
+    setStatus({
+      text: `Editando orçamento ${number}. Altere os campos e clique em PDF cliente para atualizar.`,
+      kind: 'ok',
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function cancelEditingBudget() {
+    setEditingBudget(null)
+    setStatus({ text: 'Edição cancelada.', kind: 'ok' })
+  }
+
+  async function deleteSavedBudget(item: BudgetListItem) {
+    const number = item.number || item.name || item.id
+    const ok = window.confirm(`Excluir o orçamento ${number}?`)
+    if (!ok) return
+
+    removeSavedBudget(item.id)
+    if (item.number) removeSavedBudget(item.number)
+    if (item.name && item.name !== item.id) removeSavedBudget(item.name)
+
+    if (item.number && config.syncSecret) {
+      const remote = await deleteBudgetRemote(item.number, config)
+      if (!remote.ok) {
+        setStatus({
+          text: `Removido neste navegador, mas falhou no servidor: ${remote.error || ''}`.trim(),
+          kind: 'error',
+        })
+        await refreshSavedBudgetsList()
+        return
+      }
+    }
+
+    if (editingBudget && (editingBudget.id === item.id || editingBudget.number === item.number)) {
+      setEditingBudget(null)
+    }
+    await refreshSavedBudgetsList()
+    setStatus({ text: `Orçamento ${number} excluído.`, kind: 'ok' })
   }
 
   const itemListening = autoListen && dictationTarget === 'item'
@@ -1091,7 +1182,7 @@ export default function App() {
             className="btn btn-dark"
             onClick={() => void handlePdfCliente()}
           >
-            PDF cliente
+            {editingBudget ? `Atualizar PDF ${editingBudget.number}` : 'PDF cliente'}
           </button>
           <button
             type="button"
@@ -1100,11 +1191,22 @@ export default function App() {
           >
             PDF Liganer
           </button>
+          {editingBudget ? (
+            <button type="button" className="btn btn-secondary" onClick={cancelEditingBudget}>
+              Cancelar edição
+            </button>
+          ) : null}
         </div>
       </section>
 
       <section className="card">
         <h2>Orçamentos salvos</h2>
+        {editingBudget ? (
+          <p className="editing-banner">
+            Editando orçamento <strong>{editingBudget.number}</strong>. Ao gerar o PDF cliente, este
+            número será atualizado.
+          </p>
+        ) : null}
         {savedBudgets.length ? (
           <div className="table-scroll saved-budgets-scroll">
             <table className="saved-budgets-table">
@@ -1114,26 +1216,45 @@ export default function App() {
                   <th>Cliente</th>
                   <th>CNPJ</th>
                   <th>Dia/horário</th>
-                  <th>PDF</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {savedBudgets.map((item) => {
                   const when = item.savedAt || item.createdAt
+                  const isEditing =
+                    editingBudget &&
+                    (editingBudget.id === item.id || editingBudget.number === item.number)
                   return (
-                    <tr key={item.id}>
+                    <tr key={item.id} className={isEditing ? 'is-editing' : undefined}>
                       <td>{item.name}</td>
                       <td>{item.client.name?.trim() || '—'}</td>
                       <td>{item.client.cnpj?.trim() || '—'}</td>
                       <td>{when ? new Date(when).toLocaleString('pt-BR') : '—'}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-compact"
-                          onClick={() => void openSavedPdfCliente(item)}
-                        >
-                          Abrir PDF
-                        </button>
+                        <div className="saved-budget-actions">
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-compact"
+                            onClick={() => void openSavedPdfCliente(item)}
+                          >
+                            PDF
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-compact"
+                            onClick={() => void editSavedBudget(item)}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-compact"
+                            onClick={() => void deleteSavedBudget(item)}
+                          >
+                            Excluir
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
