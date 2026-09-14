@@ -1,4 +1,4 @@
-import type { BudgetRecord, Conditions, ItemRow } from './types'
+import type { BudgetListItem, BudgetRecord, Conditions, ItemRow } from './types'
 
 const STORAGE_KEY = 'liganer-orcamento-draft-v1'
 const SAVED_KEY = 'liganer-orcamento-saved-v1'
@@ -42,6 +42,21 @@ export function saveDraft(state: DraftState): void {
   setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
+export function budgetDisplayName(record: {
+  name?: string | null
+  number?: string | null
+  createdAt?: string | null
+}): string {
+  const named = String(record.name ?? '').trim()
+  if (named) return named
+  const number = String(record.number ?? '').trim()
+  if (number) return `Orçamento Nº ${number}`
+  if (record.createdAt) {
+    return `Orçamento ${new Date(record.createdAt).toLocaleString('pt-BR')}`
+  }
+  return 'Orçamento'
+}
+
 export function loadSavedBudgets(): BudgetRecord[] {
   try {
     return JSON.parse(getItem(SAVED_KEY, '[]')) as BudgetRecord[]
@@ -56,10 +71,39 @@ export function pushSavedBudget(record: BudgetRecord): void {
   setItem(SAVED_KEY, JSON.stringify(list))
 }
 
+export function upsertSavedBudget(record: BudgetRecord): void {
+  const list = loadSavedBudgets()
+  const index = list.findIndex((item) => item.id === record.id)
+  if (index >= 0) list[index] = record
+  else list.push(record)
+  setItem(SAVED_KEY, JSON.stringify(list))
+}
+
+export function savedBudgetsAsListItems(records: BudgetRecord[] = loadSavedBudgets()): BudgetListItem[] {
+  return records
+    .map((record) => ({
+      id: record.id,
+      name: budgetDisplayName(record),
+      number: record.number ?? null,
+      client: {
+        name: record.client?.name ?? '',
+        cnpj: record.client?.cnpj ?? '',
+      },
+      createdAt: record.createdAt ?? null,
+      savedAt: record.savedAt ?? record.createdAt ?? null,
+      source: record.source ?? null,
+    }))
+    .sort((a, b) => String(b.savedAt ?? '').localeCompare(String(a.savedAt ?? '')))
+}
+
 export type SyncConfig = {
   saveUrl?: string
   printNumberUrl?: string
   syncSecret?: string
+}
+
+function budgetsApiUrl(config: SyncConfig): string {
+  return config.saveUrl || `${import.meta.env.BASE_URL}api/budgets.php`
 }
 
 export async function loadConfig(): Promise<SyncConfig> {
@@ -75,8 +119,8 @@ export async function loadConfig(): Promise<SyncConfig> {
 export async function saveBudgetRemote(
   record: BudgetRecord,
   config: SyncConfig,
-): Promise<{ ok: boolean; number?: string; error?: string }> {
-  const url = config.saveUrl || `${import.meta.env.BASE_URL}api/budgets.php`
+): Promise<{ ok: boolean; number?: string; name?: string; error?: string }> {
+  const url = budgetsApiUrl(config)
   if (!config.syncSecret) {
     return { ok: false, error: 'Sync não configurado (sem syncSecret). Salvo só neste navegador.' }
   }
@@ -89,12 +133,70 @@ export async function saveBudgetRemote(
       },
       body: JSON.stringify(record),
     })
-    const data = (await res.json().catch(() => ({}))) as { number?: string; error?: string }
+    const data = (await res.json().catch(() => ({}))) as {
+      number?: string
+      name?: string
+      error?: string
+    }
     if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}` }
-    return { ok: true, number: data.number }
+    return { ok: true, number: data.number, name: data.name }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Falha de rede' }
   }
+}
+
+export async function listBudgetsRemote(
+  config: SyncConfig,
+): Promise<{ ok: boolean; items: BudgetListItem[]; error?: string }> {
+  if (!config.syncSecret) {
+    return { ok: false, items: [], error: 'Sync não configurado.' }
+  }
+  try {
+    const res = await fetch(budgetsApiUrl(config), {
+      method: 'GET',
+      headers: {
+        'X-Sync-Secret': config.syncSecret,
+      },
+      cache: 'no-store',
+    })
+    const data = (await res.json().catch(() => ({}))) as {
+      items?: BudgetListItem[]
+      error?: string
+    }
+    if (!res.ok) return { ok: false, items: [], error: data.error || `HTTP ${res.status}` }
+    return { ok: true, items: Array.isArray(data.items) ? data.items : [] }
+  } catch (err) {
+    return {
+      ok: false,
+      items: [],
+      error: err instanceof Error ? err.message : 'Falha de rede',
+    }
+  }
+}
+
+/** Junta remoto + local, priorizando remoto quando houver o mesmo número. */
+export function mergeBudgetLists(
+  remote: BudgetListItem[],
+  local: BudgetListItem[],
+): BudgetListItem[] {
+  const byKey = new Map<string, BudgetListItem>()
+  for (const item of local) {
+    const key = item.number ? `n:${item.number}` : `id:${item.id}`
+    byKey.set(key, {
+      ...item,
+      name: budgetDisplayName(item),
+    })
+  }
+  for (const item of remote) {
+    const key = item.number ? `n:${item.number}` : `id:${item.id}`
+    byKey.set(key, {
+      ...item,
+      name: budgetDisplayName(item),
+    })
+  }
+  return [...byKey.values()].sort((a, b) =>
+    String(b.savedAt ?? b.createdAt ?? '').localeCompare(String(a.savedAt ?? a.createdAt ?? '')),
+  )
 }
 
 export function localPrintNumber(): string {

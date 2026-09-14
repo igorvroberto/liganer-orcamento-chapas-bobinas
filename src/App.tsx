@@ -26,10 +26,14 @@ import {
 } from './lib/speech'
 import {
   loadConfig,
+  listBudgetsRemote,
   loadDraft,
+  mergeBudgetLists,
   pushSavedBudget,
   saveBudgetRemote,
   saveDraft,
+  savedBudgetsAsListItems,
+  upsertSavedBudget,
   type SyncConfig,
 } from './lib/storage'
 import {
@@ -37,7 +41,7 @@ import {
   loadPriceCatalogFromExcel,
   pruneInvalidCatalogSelections,
 } from './lib/priceCatalog'
-import type { ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
+import type { BudgetListItem, ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
 
 type DictationTarget = 'item' | 'footer'
 
@@ -252,6 +256,7 @@ export default function App() {
   })
   const [status, setStatus] = useState<{ text: string; kind?: 'ok' | 'error' }>({ text: '' })
   const [config, setConfig] = useState<SyncConfig>({})
+  const [savedBudgets, setSavedBudgets] = useState<BudgetListItem[]>(() => savedBudgetsAsListItems())
   const [priceCatalogVersion, setPriceCatalogVersion] = useState(0)
   const [listening, setListening] = useState(false)
   const [autoListen, setAutoListen] = useState(false)
@@ -336,6 +341,25 @@ export default function App() {
   useEffect(() => {
     void loadConfig().then(setConfig)
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    async function refreshSavedBudgets(nextConfig: SyncConfig) {
+      const local = savedBudgetsAsListItems()
+      if (!nextConfig.syncSecret) {
+        if (!cancelled) setSavedBudgets(local)
+        return
+      }
+      const remote = await listBudgetsRemote(nextConfig)
+      if (cancelled) return
+      if (remote.ok) setSavedBudgets(mergeBudgetLists(remote.items, local))
+      else setSavedBudgets(local)
+    }
+    void refreshSavedBudgets(config)
+    return () => {
+      cancelled = true
+    }
+  }, [config])
 
   useEffect(() => {
     void loadPriceCatalogFromExcel().then((result) => {
@@ -687,31 +711,75 @@ export default function App() {
     else startListening(target)
   }
 
-  async function handleSave() {
+  async function saveBudget(source: 'salvar' | 'pdf-cliente' = 'salvar'): Promise<boolean> {
     if (!rows.length) {
-      setStatus({ text: 'Adicione ao menos um item antes de salvar.', kind: 'error' })
-      return
+      setStatus({
+        text:
+          source === 'pdf-cliente'
+            ? 'Adicione ao menos um item antes de exportar o PDF.'
+            : 'Adicione ao menos um item antes de salvar.',
+        kind: 'error',
+      })
+      return false
     }
+    const createdAt = new Date().toISOString()
     const record = {
       id: `orcamento-${Date.now()}`,
-      createdAt: new Date().toISOString(),
+      createdAt,
+      savedAt: createdAt,
       modelId,
       modelName: model.name,
       client: { ...client },
       rows,
       conditions,
       summary,
+      source,
+      name: `Orçamento ${new Date(createdAt).toLocaleString('pt-BR')}`,
     }
     pushSavedBudget(record)
     const remote = await saveBudgetRemote(record, config)
     if (remote.ok) {
-      setStatus({ text: remote.number ? `Orçamento salvo: ${remote.number}.` : 'Orçamento salvo.', kind: 'ok' })
-    } else {
+      const number = remote.number
+      const name = remote.name || (number ? `Orçamento Nº ${number}` : record.name)
+      upsertSavedBudget({
+        ...record,
+        number,
+        name,
+        savedAt: new Date().toISOString(),
+      })
+      const prefix = source === 'pdf-cliente' ? 'PDF cliente gerado e orçamento salvo' : 'Orçamento salvo'
       setStatus({
-        text: `Salvo neste navegador. ${remote.error || ''}`.trim(),
+        text: number ? `${prefix}: ${number}.` : `${prefix}.`,
+        kind: 'ok',
+      })
+    } else {
+      const localNote =
+        source === 'pdf-cliente'
+          ? 'PDF cliente gerado. Salvo neste navegador.'
+          : 'Salvo neste navegador.'
+      setStatus({
+        text: `${localNote} ${remote.error || ''}`.trim(),
         kind: config.syncSecret ? 'error' : 'ok',
       })
     }
+    const local = savedBudgetsAsListItems()
+    if (config.syncSecret) {
+      const listed = await listBudgetsRemote(config)
+      setSavedBudgets(listed.ok ? mergeBudgetLists(listed.items, local) : local)
+    } else {
+      setSavedBudgets(local)
+    }
+    return true
+  }
+
+  async function handleSave() {
+    await saveBudget('salvar')
+  }
+
+  async function handlePdfCliente() {
+    const ok = await saveBudget('pdf-cliente')
+    if (!ok) return
+    exportPdf('cliente', model, client, rows, conditions, summary)
   }
 
   const itemListening = autoListen && dictationTarget === 'item'
@@ -985,7 +1053,7 @@ export default function App() {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => exportPdf('cliente', model, client, rows, conditions, summary)}
+            onClick={() => void handlePdfCliente()}
           >
             PDF cliente
           </button>
@@ -997,6 +1065,39 @@ export default function App() {
             PDF Liganer
           </button>
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Orçamentos salvos</h2>
+        {savedBudgets.length ? (
+          <div className="table-scroll saved-budgets-scroll">
+            <table className="saved-budgets-table">
+              <thead>
+                <tr>
+                  <th>Nome do orçamento</th>
+                  <th>Cliente</th>
+                  <th>CNPJ</th>
+                  <th>Dia/horário</th>
+                </tr>
+              </thead>
+              <tbody>
+                {savedBudgets.map((item) => {
+                  const when = item.savedAt || item.createdAt
+                  return (
+                    <tr key={item.id}>
+                      <td>{item.name}</td>
+                      <td>{item.client.name?.trim() || '—'}</td>
+                      <td>{item.client.cnpj?.trim() || '—'}</td>
+                      <td>{when ? new Date(when).toLocaleString('pt-BR') : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="muted-note">Nenhum orçamento salvo ainda. Use Salvar ou PDF cliente.</p>
+        )}
       </section>
 
       <p className={`status ${status.kind || ''}`}>{status.text}</p>
