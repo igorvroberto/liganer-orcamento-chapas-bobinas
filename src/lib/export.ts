@@ -7,7 +7,6 @@ import {
   footerFields,
   isSupplierKey,
   itemFields,
-  itemHeaderLabel,
 } from './models'
 import { localPrintNumber } from './storage'
 import type { ClientInfo, Conditions, FieldDef, ItemRow, ModelDef, Summary } from './types'
@@ -332,44 +331,42 @@ export function exportPdf(
 
     table.items {
       width: max-content;
-      max-width: 100%;
+      max-width: none;
       border-collapse: collapse;
       table-layout: auto;
     }
     table.items th,
     table.items td {
       border: 1px solid #d8dfd9;
-      padding: 5px 4px;
+      padding: 4px 5px;
       vertical-align: middle;
       text-align: center;
       overflow: visible;
       width: auto;
       max-width: none;
+      white-space: nowrap;
+      word-break: keep-all;
+      overflow-wrap: normal;
     }
     table.items th {
       background: #c60000;
       color: #fff;
-      font-size: 7.5px;
+      font-size: 7px;
       font-weight: 800;
       text-transform: uppercase;
       line-height: 1.15;
-      white-space: pre-line;
       letter-spacing: 0.01em;
     }
     table.items td {
-      white-space: normal;
-      overflow-wrap: anywhere;
-      word-break: break-word;
+      font-size: 7.5px;
     }
     table.items td.item-no {
       width: 1%;
-      white-space: nowrap;
       font-weight: 700;
       color: #56635d;
     }
     table.items th.item-no {
       width: 1%;
-      white-space: nowrap;
     }
     body.pdf-liganer table.items th {
       font-size: 5px;
@@ -379,6 +376,16 @@ export function exportPdf(
       font-size: 5.4px;
       padding: 2px 1px;
       line-height: 1.12;
+    }
+
+    .sheet-scale {
+      width: 100%;
+      overflow: hidden;
+    }
+    .sheet {
+      display: inline-block;
+      min-width: 100%;
+      transform-origin: top left;
     }
 
     .bottom {
@@ -442,6 +449,8 @@ export function exportPdf(
     <button type="button" onclick="window.print()">Salvar em PDF</button>
   </div>
 
+  <div class="sheet-scale">
+  <div class="sheet">
   <header class="banner">
     <div class="brand">
       <img src="${escapeHtml(logo)}" alt="Liganer" width="40" height="40" />
@@ -463,7 +472,7 @@ export function exportPdf(
       <tr>
         <th class="item-no">Item</th>
         ${fields
-          .map((field) => `<th>${escapeHtml(itemHeaderLabel(field.label))}</th>`)
+          .map((field) => `<th>${escapeHtml(fieldLabel(field.label))}</th>`)
           .join('')}
       </tr>
     </thead>
@@ -474,11 +483,37 @@ export function exportPdf(
     ${summaryHtml}
     ${conditionsHtml}
   </div>
+  </div>
+  </div>
 
   <script>
+    function fitSheetToPage() {
+      const sheet = document.querySelector('.sheet')
+      const scaleBox = document.querySelector('.sheet-scale')
+      if (!sheet || !scaleBox) return
+      sheet.style.zoom = '1'
+      sheet.style.transform = 'none'
+      sheet.style.marginBottom = '0'
+      const avail = scaleBox.clientWidth || document.body.clientWidth || window.innerWidth
+      const needed = Math.max(sheet.scrollWidth, sheet.offsetWidth)
+      if (!avail || !needed) return
+      const scale = Math.min(1, avail / needed)
+      if (scale >= 0.999) return
+      if ('zoom' in sheet.style) {
+        sheet.style.zoom = String(scale)
+      } else {
+        sheet.style.transform = 'scale(' + scale + ')'
+        sheet.style.marginBottom = (-(1 - scale) * sheet.scrollHeight) + 'px'
+      }
+    }
     window.addEventListener('load', () => {
-      setTimeout(() => window.print(), 400)
+      fitSheetToPage()
+      setTimeout(() => {
+        fitSheetToPage()
+        window.print()
+      }, 400)
     })
+    window.addEventListener('resize', fitSheetToPage)
   </script>
 </body>
 </html>`
