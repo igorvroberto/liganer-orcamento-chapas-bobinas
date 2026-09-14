@@ -80,6 +80,19 @@ export type BudgetRecord = {
   conditions: Conditions
   summary: Summary
   number?: string
+  /** Nome exibido na lista de orçamentos salvos. */
+  name?: string
+  savedAt?: string
   /** Origem do salvamento, ex.: botão Salvar ou PDF cliente. */
   source?: string
+}
+
+export type BudgetListItem = {
+  id: string
+  name: string
+  number?: string | null
+  client: ClientInfo
+  createdAt?: string | null
+  savedAt?: string | null
+  source?: string | null
 }

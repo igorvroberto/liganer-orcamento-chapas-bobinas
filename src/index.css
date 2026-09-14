@@ -529,6 +529,44 @@ select:disabled {
   font-size: 0.9rem;
 }
 
+.saved-budgets-scroll {
+  margin-top: 4px;
+}
+
+.saved-budgets-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.saved-budgets-table th,
+.saved-budgets-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.saved-budgets-table th {
+  background: var(--accent-light);
+  color: #24312c;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.saved-budgets-table td {
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.muted-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .mic-row {
   display: flex;
   flex-wrap: wrap;
