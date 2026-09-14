@@ -25,9 +25,12 @@ import {
   type SpeechRecognitionLike,
 } from './lib/speech'
 import {
+  fetchBudgetRemote,
+  findSavedBudget,
   loadConfig,
   listBudgetsRemote,
   loadDraft,
+  localPrintNumber,
   mergeBudgetLists,
   pushSavedBudget,
   saveBudgetRemote,
@@ -711,18 +714,16 @@ export default function App() {
     else startListening(target)
   }
 
-  async function saveBudget(source: 'salvar' | 'pdf-cliente' = 'salvar'): Promise<boolean> {
+  async function savePdfClienteBudget(): Promise<string | null> {
     if (!rows.length) {
       setStatus({
-        text:
-          source === 'pdf-cliente'
-            ? 'Adicione ao menos um item antes de exportar o PDF.'
-            : 'Adicione ao menos um item antes de salvar.',
+        text: 'Adicione ao menos um item antes de exportar o PDF.',
         kind: 'error',
       })
-      return false
+      return null
     }
     const createdAt = new Date().toISOString()
+    let number = localPrintNumber()
     const record = {
       id: `orcamento-${Date.now()}`,
       createdAt,
@@ -733,32 +734,28 @@ export default function App() {
       rows,
       conditions,
       summary,
-      source,
-      name: `Orçamento ${new Date(createdAt).toLocaleString('pt-BR')}`,
+      source: 'pdf-cliente' as const,
+      number,
+      name: number,
     }
     pushSavedBudget(record)
     const remote = await saveBudgetRemote(record, config)
-    if (remote.ok) {
-      const number = remote.number
-      const name = remote.name || (number ? `Orçamento Nº ${number}` : record.name)
+    if (remote.ok && remote.number) {
+      number = remote.number
       upsertSavedBudget({
         ...record,
         number,
-        name,
+        name: number,
         savedAt: new Date().toISOString(),
       })
-      const prefix = source === 'pdf-cliente' ? 'PDF cliente gerado e orçamento salvo' : 'Orçamento salvo'
       setStatus({
-        text: number ? `${prefix}: ${number}.` : `${prefix}.`,
+        text: `PDF cliente gerado e orçamento salvo: ${number}.`,
         kind: 'ok',
       })
     } else {
-      const localNote =
-        source === 'pdf-cliente'
-          ? 'PDF cliente gerado. Salvo neste navegador.'
-          : 'Salvo neste navegador.'
+      upsertSavedBudget(record)
       setStatus({
-        text: `${localNote} ${remote.error || ''}`.trim(),
+        text: `PDF cliente gerado. Salvo neste navegador${remote.error ? ` — ${remote.error}` : ''}.`.trim(),
         kind: config.syncSecret ? 'error' : 'ok',
       })
     }
@@ -769,17 +766,59 @@ export default function App() {
     } else {
       setSavedBudgets(local)
     }
-    return true
-  }
-
-  async function handleSave() {
-    await saveBudget('salvar')
+    return number
   }
 
   async function handlePdfCliente() {
-    const ok = await saveBudget('pdf-cliente')
-    if (!ok) return
-    exportPdf('cliente', model, client, rows, conditions, summary)
+    const number = await savePdfClienteBudget()
+    if (!number) return
+    exportPdf('cliente', model, client, rows, conditions, summary, { number })
+  }
+
+  async function openSavedPdfCliente(item: BudgetListItem) {
+    const key = item.number || item.name || item.id
+    let record = findSavedBudget(item.id) || (item.number ? findSavedBudget(item.number) : null)
+    if (!record && item.number && config.syncSecret) {
+      const remote = await fetchBudgetRemote(item.number, config)
+      if (remote.ok && remote.record) {
+        record = remote.record
+        upsertSavedBudget({
+          ...remote.record,
+          number: remote.record.number || item.number,
+          name: remote.record.number || item.number,
+        })
+      } else {
+        setStatus({
+          text: remote.error || 'Não foi possível abrir este orçamento.',
+          kind: 'error',
+        })
+        return
+      }
+    }
+    if (!record?.rows?.length) {
+      setStatus({
+        text: 'Orçamento sem itens para gerar o PDF.',
+        kind: 'error',
+      })
+      return
+    }
+    const savedModel = getModel(record.modelId || modelId)
+    const savedConditions = record.conditions || {}
+    const savedSummary =
+      record.summary || calculateSummary(savedModel.id, record.rows, savedConditions)
+    exportPdf(
+      'cliente',
+      savedModel,
+      record.client || { name: '', cnpj: '' },
+      record.rows,
+      savedConditions,
+      savedSummary,
+      { number: record.number || key },
+    )
+    setStatus({
+      text: `PDF do orçamento ${record.number || key} aberto.`,
+      kind: 'ok',
+    })
   }
 
   const itemListening = autoListen && dictationTarget === 'item'
@@ -1047,12 +1086,9 @@ export default function App() {
           ))}
         </div>
         <div className="actions" style={{ marginTop: 16 }}>
-          <button type="button" className="btn btn-dark" onClick={() => void handleSave()}>
-            Salvar
-          </button>
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-dark"
             onClick={() => void handlePdfCliente()}
           >
             PDF cliente
@@ -1078,6 +1114,7 @@ export default function App() {
                   <th>Cliente</th>
                   <th>CNPJ</th>
                   <th>Dia/horário</th>
+                  <th>PDF</th>
                 </tr>
               </thead>
               <tbody>
@@ -1089,6 +1126,15 @@ export default function App() {
                       <td>{item.client.name?.trim() || '—'}</td>
                       <td>{item.client.cnpj?.trim() || '—'}</td>
                       <td>{when ? new Date(when).toLocaleString('pt-BR') : '—'}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-compact"
+                          onClick={() => void openSavedPdfCliente(item)}
+                        >
+                          Abrir PDF
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}
@@ -1096,7 +1142,7 @@ export default function App() {
             </table>
           </div>
         ) : (
-          <p className="muted-note">Nenhum orçamento salvo ainda. Use Salvar ou PDF cliente.</p>
+          <p className="muted-note">Nenhum orçamento salvo ainda. Use PDF cliente.</p>
         )}
       </section>
 

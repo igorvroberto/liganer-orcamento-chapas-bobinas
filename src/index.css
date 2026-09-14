@@ -567,6 +567,11 @@ select:disabled {
   font-size: 0.9rem;
 }
 
+.btn-compact {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+}
+
 .mic-row {
   display: flex;
   flex-wrap: wrap;
