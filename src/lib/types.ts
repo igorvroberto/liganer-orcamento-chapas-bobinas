@@ -83,7 +83,7 @@ export type BudgetRecord = {
   /** Nome exibido na lista de orçamentos salvos. */
   name?: string
   savedAt?: string
-  /** Origem do salvamento, ex.: botão Salvar ou PDF cliente. */
+  /** Origem do salvamento, ex.: botão Salvar. */
   source?: string
 }
 

@@ -757,10 +757,10 @@ export default function App() {
     return record
   }
 
-  async function savePdfClienteBudget(): Promise<string | null> {
+  async function saveBudget(): Promise<string | null> {
     if (!rows.length) {
       setStatus({
-        text: 'Adicione ao menos um item antes de exportar o PDF.',
+        text: 'Adicione ao menos um item antes de salvar.',
         kind: 'error',
       })
       return null
@@ -778,7 +778,7 @@ export default function App() {
       rows,
       conditions,
       summary,
-      source: 'pdf-cliente' as const,
+      source: 'salvar' as const,
       number,
       name: number,
     }
@@ -795,15 +795,13 @@ export default function App() {
         savedAt: new Date().toISOString(),
       })
       setStatus({
-        text: editing
-          ? `Orçamento ${number} atualizado e PDF gerado.`
-          : `PDF cliente gerado e orçamento salvo: ${number}.`,
+        text: editing ? `Orçamento ${number} atualizado.` : `Orçamento salvo: ${number}.`,
         kind: 'ok',
       })
     } else {
       upsertSavedBudget(record)
       setStatus({
-        text: `PDF cliente gerado. Salvo neste navegador${remote.error ? ` — ${remote.error}` : ''}.`.trim(),
+        text: `Salvo neste navegador${remote.error ? ` — ${remote.error}` : ''}.`.trim(),
         kind: config.syncSecret ? 'error' : 'ok',
       })
     }
@@ -812,10 +810,8 @@ export default function App() {
     return number
   }
 
-  async function handlePdfCliente() {
-    const number = await savePdfClienteBudget()
-    if (!number) return
-    exportPdf('cliente', model, client, rows, conditions, summary, { number })
+  async function handleSave() {
+    await saveBudget()
   }
 
   async function openSavedPdfCliente(item: BudgetListItem) {
@@ -839,7 +835,33 @@ export default function App() {
       { number: key },
     )
     setStatus({
-      text: `PDF do orçamento ${key} aberto.`,
+      text: `PDF cliente do orçamento ${key} aberto.`,
+      kind: 'ok',
+    })
+  }
+
+  async function openSavedPdfLiganer(item: BudgetListItem) {
+    const record = await resolveSavedRecord(item)
+    if (!record?.rows?.length) {
+      if (record) setStatus({ text: 'Orçamento sem itens para gerar o PDF.', kind: 'error' })
+      return
+    }
+    const key = record.number || item.number || item.name || item.id
+    const savedModel = getModel(record.modelId || modelId)
+    const savedConditions = record.conditions || {}
+    const savedSummary =
+      record.summary || calculateSummary(savedModel.id, record.rows, savedConditions)
+    exportPdf(
+      'liganer',
+      savedModel,
+      record.client || { name: '', cnpj: '' },
+      record.rows,
+      savedConditions,
+      savedSummary,
+      { number: key },
+    )
+    setStatus({
+      text: `PDF Liganer do orçamento ${key} aberto.`,
       kind: 'ok',
     })
   }
@@ -894,7 +916,7 @@ export default function App() {
       createdAt: record.createdAt,
     })
     setStatus({
-      text: `Editando orçamento ${number}. Altere os campos e clique em PDF cliente para atualizar.`,
+      text: `Editando orçamento ${number}. Altere os campos e clique em Salvar para atualizar.`,
       kind: 'ok',
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -1198,19 +1220,8 @@ export default function App() {
           ))}
         </div>
         <div className="actions" style={{ marginTop: 16 }}>
-          <button
-            type="button"
-            className="btn btn-dark"
-            onClick={() => void handlePdfCliente()}
-          >
-            {editingBudget ? `Atualizar PDF ${editingBudget.number}` : 'PDF cliente'}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => exportPdf('liganer', model, client, rows, conditions, summary)}
-          >
-            PDF Liganer
+          <button type="button" className="btn btn-dark" onClick={() => void handleSave()}>
+            {editingBudget ? `Atualizar ${editingBudget.number}` : 'Salvar'}
           </button>
           {editingBudget ? (
             <button type="button" className="btn btn-secondary" onClick={cancelEditingBudget}>
@@ -1224,8 +1235,8 @@ export default function App() {
         <h2>Orçamentos salvos</h2>
         {editingBudget ? (
           <p className="editing-banner">
-            Editando orçamento <strong>{editingBudget.number}</strong>. Ao gerar o PDF cliente, este
-            número será atualizado.
+            Editando orçamento <strong>{editingBudget.number}</strong>. Clique em Salvar para
+            atualizar este número.
           </p>
         ) : null}
         {savedBudgets.length ? (
@@ -1259,7 +1270,14 @@ export default function App() {
                             className="btn btn-secondary btn-compact"
                             onClick={() => void openSavedPdfCliente(item)}
                           >
-                            PDF
+                            PDF cliente
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-compact"
+                            onClick={() => void openSavedPdfLiganer(item)}
+                          >
+                            PDF Liganer
                           </button>
                           <button
                             type="button"
@@ -1291,7 +1309,7 @@ export default function App() {
             </table>
           </div>
         ) : (
-          <p className="muted-note">Nenhum orçamento salvo ainda. Use PDF cliente.</p>
+          <p className="muted-note">Nenhum orçamento salvo ainda. Use Salvar.</p>
         )}
       </section>
 
