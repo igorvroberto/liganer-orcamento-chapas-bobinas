@@ -364,9 +364,10 @@ select:disabled {
 }
 
 .items-table {
-  width: 100%;
-  min-width: 1680px;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
+  table-layout: auto;
   background: #fff;
 }
 
@@ -377,6 +378,8 @@ select:disabled {
   text-align: left;
   vertical-align: middle;
   white-space: nowrap;
+  width: auto;
+  overflow: visible;
 }
 
 .items-table th {
@@ -395,8 +398,7 @@ select:disabled {
 
 .items-table th.boolean-column,
 .items-table td.boolean-column {
-  min-width: 74px;
-  width: 74px;
+  width: 1%;
   text-align: center;
 }
 
@@ -406,9 +408,8 @@ select:disabled {
 
 .items-table .delete-column,
 .items-table .item-number-column {
-  width: 56px;
-  min-width: 56px;
-  max-width: 56px;
+  width: 1%;
+  white-space: nowrap;
   text-align: center;
 }
 
@@ -420,16 +421,18 @@ select:disabled {
 
 .calculated-cell {
   display: inline-block;
-  min-width: 72px;
   color: var(--accent-dark);
   font-weight: 800;
   font-size: 0.86rem;
+  white-space: nowrap;
 }
 
 .cell-control {
   min-height: 34px;
-  min-width: 92px;
-  width: 100%;
+  min-width: 4.5ch;
+  width: auto;
+  max-width: none;
+  field-sizing: content;
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;

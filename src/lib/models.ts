@@ -38,8 +38,14 @@ function footerFieldsModule(): FieldDef[] {
     },
     {
       key: 'cidade_cliente',
-      label: 'Cidade do cliente',
-      aliases: ['cidade do cliente', 'cidade', 'cliente cidade'],
+      label: 'Cidade/UF do cliente',
+      aliases: [
+        'cidade/uf do cliente',
+        'cidade uf do cliente',
+        'cidade do cliente',
+        'cidade',
+        'cliente cidade',
+      ],
       section: 'Rodapé',
     },
     {

@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx'
 import { calculateRow, usesManualUnitWeight } from './calc'
 import { displayFieldValue, formatCurrency, formatNumber } from './format'
 import {
@@ -60,66 +59,6 @@ function orderClientePdfFields(fields: FieldDef[]): FieldDef[] {
     result.push(field)
   }
   return result
-}
-
-export function exportExcel(
-  model: ModelDef,
-  client: ClientInfo,
-  rows: ItemRow[],
-  conditions: Conditions,
-): void {
-  const fields = exportableFields(model, 'liganer')
-  const aoa: (string | number)[][] = [
-    ['Cliente', 'CNPJ', ...fields.map((f) => fieldLabel(f.label))],
-  ]
-  rows.forEach((row, index) => {
-    aoa.push([
-      client.name,
-      client.cnpj,
-      ...fields.map((f) => {
-        const v = valueForField(f, model.id, row, conditions, index)
-        if (typeof v === 'boolean') return v ? 'X' : ''
-        if (typeof v === 'number') return v
-        return v == null ? '' : String(v)
-      }),
-    ])
-  })
-  const sheet = XLSX.utils.aoa_to_sheet(aoa)
-  const book = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(book, sheet, 'Orcamento')
-  XLSX.writeFile(book, `orcamento-${model.id}.xlsx`)
-}
-
-export function exportCsv(
-  model: ModelDef,
-  client: ClientInfo,
-  rows: ItemRow[],
-  conditions: Conditions,
-): void {
-  const fields = exportableFields(model, 'liganer')
-  const lines = [
-    ['Cliente', 'CNPJ', ...fields.map((f) => fieldLabel(f.label))]
-      .map((c) => `"${String(c).replace(/"/g, '""')}"`)
-      .join(';'),
-  ]
-  rows.forEach((row, index) => {
-    const cols = [
-      client.name,
-      client.cnpj,
-      ...fields.map((f) => {
-        const v = valueForField(f, model.id, row, conditions, index)
-        return displayFieldValue(v, f)
-      }),
-    ]
-    lines.push(cols.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(';'))
-  })
-  const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `orcamento-${model.id}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
 }
 
 function logoUrl(): string {
@@ -333,9 +272,10 @@ export function exportPdf(
     body.pdf-liganer .client-card strong { font-size: 9px; }
 
     table.items {
-      width: 100%;
+      width: max-content;
+      max-width: 100%;
       border-collapse: collapse;
-      table-layout: fixed;
+      table-layout: auto;
     }
     table.items th,
     table.items td {
@@ -343,7 +283,9 @@ export function exportPdf(
       padding: 5px 4px;
       vertical-align: middle;
       text-align: center;
-      overflow: hidden;
+      overflow: visible;
+      width: auto;
+      max-width: none;
     }
     table.items th {
       background: #c60000;
@@ -356,16 +298,19 @@ export function exportPdf(
       letter-spacing: 0.01em;
     }
     table.items td {
-      white-space: nowrap;
-      text-overflow: clip;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     table.items td.item-no {
-      width: 28px;
+      width: 1%;
+      white-space: nowrap;
       font-weight: 700;
       color: #56635d;
     }
     table.items th.item-no {
-      width: 28px;
+      width: 1%;
+      white-space: nowrap;
     }
     body.pdf-liganer table.items th {
       font-size: 5px;
