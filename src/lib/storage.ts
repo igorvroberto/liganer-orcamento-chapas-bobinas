@@ -47,14 +47,14 @@ export function budgetDisplayName(record: {
   number?: string | null
   createdAt?: string | null
 }): string {
+  const number = String(record.number ?? '').trim()
+  if (number) return number
   const named = String(record.name ?? '').trim()
   if (named) return named
-  const number = String(record.number ?? '').trim()
-  if (number) return `Orçamento Nº ${number}`
   if (record.createdAt) {
-    return `Orçamento ${new Date(record.createdAt).toLocaleString('pt-BR')}`
+    return new Date(record.createdAt).toLocaleString('pt-BR')
   }
-  return 'Orçamento'
+  return '—'
 }
 
 export function loadSavedBudgets(): BudgetRecord[] {
@@ -145,6 +145,36 @@ export async function saveBudgetRemote(
   }
 }
 
+export async function fetchBudgetRemote(
+  number: string,
+  config: SyncConfig,
+): Promise<{ ok: boolean; record?: BudgetRecord; error?: string }> {
+  const trimmed = String(number ?? '').trim()
+  if (!trimmed) return { ok: false, error: 'Número inválido.' }
+  if (!config.syncSecret) {
+    return { ok: false, error: 'Sync não configurado.' }
+  }
+  try {
+    const url = new URL(budgetsApiUrl(config), window.location.origin)
+    url.searchParams.set('number', trimmed)
+    const res = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'X-Sync-Secret': config.syncSecret,
+      },
+      cache: 'no-store',
+    })
+    const data = (await res.json().catch(() => ({}))) as BudgetRecord & { error?: string; ok?: boolean }
+    if (!res.ok) return { ok: false, error: data.error || `HTTP ${res.status}` }
+    if (!data || !Array.isArray(data.rows)) {
+      return { ok: false, error: 'Orçamento incompleto no servidor.' }
+    }
+    return { ok: true, record: data }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Falha de rede' }
+  }
+}
+
 export async function listBudgetsRemote(
   config: SyncConfig,
 ): Promise<{ ok: boolean; items: BudgetListItem[]; error?: string }> {
@@ -210,4 +240,13 @@ export function localPrintNumber(): string {
   const next = Number(getItem(key, '0')) + 1
   setItem(key, String(next))
   return `${ymd}${String(next).padStart(2, '0')}`
+}
+
+export function findSavedBudget(idOrNumber: string): BudgetRecord | null {
+  const key = String(idOrNumber ?? '').trim()
+  if (!key) return null
+  return (
+    loadSavedBudgets().find((item) => item.id === key || item.number === key || item.name === key) ??
+    null
+  )
 }

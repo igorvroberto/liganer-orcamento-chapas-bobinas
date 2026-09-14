@@ -73,6 +73,7 @@ export function exportPdf(
   rows: ItemRow[],
   conditions: Conditions,
   summary: Summary,
+  options?: { number?: string },
 ): void {
   if (!rows.length) return
   const fields = exportableFields(model, kind)
@@ -81,7 +82,7 @@ export function exportPdf(
     if (kind === 'cliente' && f.key === 'frete_percentual') return false
     return true
   })
-  const number = localPrintNumber()
+  const number = String(options?.number ?? '').trim() || localPrintNumber()
   const now = new Date().toLocaleString('pt-BR')
   const pdfClass = kind === 'liganer' ? 'pdf-liganer' : 'pdf-cliente'
   const logo = logoUrl()

@@ -4,7 +4,7 @@
  * Mesmo espírito de /prospeccao/api/leads.php — autenticação por X-Sync-Secret.
  *
  * POST — grava orçamento em data/orcamento-{numero}.json
- * GET  — lista resumos (nome, cliente, CNPJ, data/hora)
+ * GET  — lista resumos; com ?number= retorna o JSON completo
  */
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -38,6 +38,25 @@ if (!is_dir($dataDir)) {
 }
 
 if ($method === 'GET') {
+    $requestedNumber = preg_replace('/\D+/', '', (string) ($_GET['number'] ?? ''));
+    if ($requestedNumber !== '') {
+        $file = $dataDir . '/orcamento-' . $requestedNumber . '.json';
+        if (!is_readable($file)) {
+            http_response_code(404);
+            echo json_encode(['ok' => false, 'error' => 'Orçamento não encontrado']);
+            exit;
+        }
+        $rawFile = file_get_contents($file);
+        $data = json_decode((string) $rawFile, true);
+        if (!is_array($data)) {
+            http_response_code(500);
+            echo json_encode(['ok' => false, 'error' => 'Arquivo inválido']);
+            exit;
+        }
+        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     $items = [];
     foreach (glob($dataDir . '/orcamento-*.json') ?: [] as $file) {
         $rawFile = file_get_contents($file);
@@ -49,9 +68,9 @@ if ($method === 'GET') {
         $client = is_array($data['client'] ?? null) ? $data['client'] : [];
         $createdAt = (string) ($data['createdAt'] ?? $data['savedAt'] ?? '');
         $savedAt = (string) ($data['savedAt'] ?? $data['createdAt'] ?? '');
-        $name = trim((string) ($data['name'] ?? ''));
+        $name = $number !== '' ? $number : trim((string) ($data['name'] ?? ''));
         if ($name === '') {
-            $name = $number !== '' ? ('Orçamento Nº ' . $number) : 'Orçamento';
+            $name = '—';
         }
         $items[] = [
             'id' => (string) ($data['id'] ?? basename($file, '.json')),
@@ -95,10 +114,8 @@ file_put_contents($counterFile, (string) $next, LOCK_EX);
 $number = $stamp . str_pad((string) $next, 2, '0', STR_PAD_LEFT);
 
 $payload['number'] = $number;
+$payload['name'] = $number;
 $payload['savedAt'] = date('c');
-if (!isset($payload['name']) || trim((string) $payload['name']) === '') {
-    $payload['name'] = 'Orçamento Nº ' . $number;
-}
 $file = $dataDir . '/orcamento-' . $number . '.json';
 file_put_contents($file, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT), LOCK_EX);
 
@@ -106,5 +123,5 @@ echo json_encode([
     'ok' => true,
     'number' => $number,
     'id' => $number,
-    'name' => $payload['name'],
+    'name' => $number,
 ], JSON_UNESCAPED_UNICODE);
