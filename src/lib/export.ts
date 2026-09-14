@@ -174,21 +174,30 @@ export function exportPdf(
   <meta charset="utf-8" />
   <title>Liganer · Orçamento ${escapeHtml(number)}</title>
   <style>
-    @page { size: A4 landscape; margin: 8mm; }
+    /* Dimensões explícitas A4 paisagem — mais confiável que só "landscape" em alguns navegadores. */
+    @page {
+      size: 297mm 210mm;
+      margin: 8mm;
+    }
     * { box-sizing: border-box; }
-    body {
+    html, body {
       margin: 0;
       color: #17211d;
       font-family: Inter, Arial, Helvetica, sans-serif;
       font-size: 10px;
       background: #fff;
     }
+    body {
+      min-width: 297mm;
+    }
     body.pdf-liganer { font-size: 7px; }
 
     .print-actions {
       display: flex;
+      flex-wrap: wrap;
       justify-content: flex-end;
-      gap: 8px;
+      align-items: center;
+      gap: 8px 12px;
       margin-bottom: 10px;
     }
     .print-actions button {
@@ -200,7 +209,21 @@ export function exportPdf(
       font-weight: 700;
       cursor: pointer;
     }
-    @media print { .print-actions { display: none; } }
+    .print-actions .print-hint {
+      color: #56635d;
+      font-size: 11px;
+    }
+    @media print {
+      .print-actions { display: none; }
+      @page {
+        size: 297mm 210mm;
+        margin: 8mm;
+      }
+      html, body {
+        width: 297mm;
+        min-height: 210mm;
+      }
+    }
 
     .banner {
       display: flex;
@@ -380,6 +403,7 @@ export function exportPdf(
 </head>
 <body class="${pdfClass}">
   <div class="print-actions">
+    <span class="print-hint">Orientação: paisagem (horizontal)</span>
     <button type="button" onclick="window.print()">Salvar em PDF</button>
   </div>
 
@@ -416,11 +440,20 @@ export function exportPdf(
     ${conditionsHtml}
   </div>
 
-  <script>window.addEventListener('load', () => setTimeout(() => window.print(), 350))</script>
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => window.print(), 400)
+    })
+  </script>
 </body>
 </html>`
 
-  const win = window.open('', '_blank')
+  // Janela larga (proporção paisagem) ajuda o preview e o diálogo de impressão.
+  const win = window.open(
+    '',
+    '_blank',
+    'noopener,noreferrer,width=1280,height=860,left=40,top=40',
+  )
   if (!win) {
     alert('O navegador bloqueou a janela de PDF. Permita pop-ups para exportar.')
     return
@@ -428,6 +461,11 @@ export function exportPdf(
   win.document.open()
   win.document.write(html)
   win.document.close()
+  try {
+    win.focus()
+  } catch {
+    /* ignore */
+  }
 }
 
 function escapeHtml(value: string): string {
