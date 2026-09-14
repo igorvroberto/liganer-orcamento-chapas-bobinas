@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx'
 import { calculateRow, usesManualUnitWeight } from './calc'
 import { displayFieldValue, formatCurrency, formatNumber } from './format'
 import {
@@ -59,6 +60,38 @@ function orderClientePdfFields(fields: FieldDef[]): FieldDef[] {
     result.push(field)
   }
   return result
+}
+
+export function exportExcel(
+  model: ModelDef,
+  client: ClientInfo,
+  rows: ItemRow[],
+  conditions: Conditions,
+  options?: { number?: string },
+): void {
+  if (!rows.length) return
+  const fields = exportableFields(model, 'liganer')
+  const aoa: (string | number)[][] = [
+    ['Cliente', 'CNPJ', ...fields.map((f) => fieldLabel(f.label))],
+  ]
+  rows.forEach((row, index) => {
+    aoa.push([
+      client.name,
+      client.cnpj,
+      ...fields.map((f) => {
+        const v = valueForField(f, model.id, row, conditions, index)
+        if (typeof v === 'boolean') return v ? 'X' : ''
+        if (typeof v === 'number') return v
+        return v == null ? '' : String(v)
+      }),
+    ])
+  })
+  const sheet = XLSX.utils.aoa_to_sheet(aoa)
+  const book = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(book, sheet, 'Orcamento')
+  const number = String(options?.number ?? '').trim()
+  const filename = number ? `${number}.xlsx` : `orcamento-${model.id}.xlsx`
+  XLSX.writeFile(book, filename)
 }
 
 function logoUrl(): string {

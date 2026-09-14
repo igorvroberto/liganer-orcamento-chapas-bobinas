@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { calculateRow, calculateSummary, isBobinaMaterial, numericValue, sheetUnitWeight, usesManualUnitWeight } from './lib/calc'
-import { exportPdf } from './lib/export'
+import { exportExcel, exportPdf } from './lib/export'
 import {
   displayFieldValue,
   emptyRowDefaults,
@@ -1190,6 +1190,17 @@ export default function App() {
             onClick={() => exportPdf('liganer', model, client, rows, conditions, summary)}
           >
             PDF Liganer
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() =>
+              exportExcel(model, client, rows, conditions, {
+                number: editingBudget?.number,
+              })
+            }
+          >
+            XLSX
           </button>
           {editingBudget ? (
             <button type="button" className="btn btn-secondary" onClick={cancelEditingBudget}>
