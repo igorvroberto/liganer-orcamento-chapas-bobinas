@@ -172,7 +172,7 @@ export function exportPdf(
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <title>Liganer · Orçamento ${escapeHtml(number)}</title>
+  <title>${escapeHtml(number)}</title>
   <style>
     /* Dimensões explícitas A4 paisagem — mais confiável que só "landscape" em alguns navegadores. */
     @page {
