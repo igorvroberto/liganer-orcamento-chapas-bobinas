@@ -1,6 +1,4 @@
 import * as XLSX from 'xlsx'
-import html2canvas from 'html2canvas'
-import { jsPDF } from 'jspdf'
 import { calculateRow, usesManualUnitWeight } from './calc'
 import { displayFieldValue, formatCurrency, formatNumber } from './format'
 import {
@@ -100,7 +98,7 @@ function logoUrl(): string {
   return `${window.location.origin}${base}liganer_favicon.webp`
 }
 
-export async function exportPdf(
+export function exportPdf(
   kind: 'cliente' | 'liganer',
   model: ModelDef,
   client: ClientInfo,
@@ -108,7 +106,7 @@ export async function exportPdf(
   conditions: Conditions,
   summary: Summary,
   options?: { number?: string },
-): Promise<void> {
+): void {
   if (!rows.length) return
   const fields = exportableFields(model, kind)
   const footer = footerFields(model).filter((f) => {
@@ -226,6 +224,40 @@ export async function exportPdf(
       max-width: 210mm;
     }
     body.pdf-liganer { font-size: 7px; }
+
+    .print-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px 12px;
+      margin-bottom: 10px;
+    }
+    .print-actions button {
+      border: 0;
+      border-radius: 6px;
+      background: #c60000;
+      color: #fff;
+      padding: 8px 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .print-actions .print-hint {
+      color: #56635d;
+      font-size: 11px;
+    }
+    @media print {
+      .print-actions { display: none; }
+      @page {
+        size: 210mm 297mm;
+        margin: 8mm;
+      }
+      html, body {
+        width: 210mm;
+        min-height: 297mm;
+        max-width: none;
+      }
+    }
 
     .banner {
       display: flex;
@@ -412,11 +444,16 @@ export async function exportPdf(
   </style>
 </head>
 <body class="${pdfClass}">
+  <div class="print-actions">
+    <span class="print-hint">Orientação: retrato (vertical)</span>
+    <button type="button" onclick="window.print()">Salvar em PDF</button>
+  </div>
+
   <div class="sheet-scale">
   <div class="sheet">
   <header class="banner">
     <div class="brand">
-      <img src="${escapeHtml(logo)}" alt="Liganer" width="40" height="40" crossorigin="anonymous" />
+      <img src="${escapeHtml(logo)}" alt="Liganer" width="40" height="40" />
       <div>
         <h1>Liganer</h1>
       </div>
@@ -448,99 +485,58 @@ export async function exportPdf(
   </div>
   </div>
   </div>
+
+  <script>
+    function fitSheetToPage() {
+      const sheet = document.querySelector('.sheet')
+      const scaleBox = document.querySelector('.sheet-scale')
+      if (!sheet || !scaleBox) return
+      sheet.style.zoom = '1'
+      sheet.style.transform = 'none'
+      sheet.style.marginBottom = '0'
+      const avail = scaleBox.clientWidth || document.body.clientWidth || window.innerWidth
+      const needed = Math.max(sheet.scrollWidth, sheet.offsetWidth)
+      if (!avail || !needed) return
+      const scale = Math.min(1, avail / needed)
+      if (scale >= 0.999) return
+      if ('zoom' in sheet.style) {
+        sheet.style.zoom = String(scale)
+      } else {
+        sheet.style.transform = 'scale(' + scale + ')'
+        sheet.style.marginBottom = (-(1 - scale) * sheet.scrollHeight) + 'px'
+      }
+    }
+    window.addEventListener('load', () => {
+      fitSheetToPage()
+      setTimeout(() => {
+        fitSheetToPage()
+        window.print()
+      }, 400)
+    })
+    window.addEventListener('resize', fitSheetToPage)
+  </script>
 </body>
 </html>`
 
-  try {
-    await downloadHtmlAsPdf(html, `${number}.pdf`)
-  } catch (err) {
-    console.error(err)
-    alert(
-      err instanceof Error
-        ? `Não foi possível gerar o PDF: ${err.message}`
-        : 'Não foi possível gerar o PDF.',
-    )
+  // Janela em proporção retrato. Não usar noopener: em Chrome/Edge
+  // window.open(..., 'noopener') devolve null e o PDF deixa de abrir.
+  const win = window.open('', '_blank', 'width=900,height=1200,left=40,top=20')
+  if (!win) {
+    alert('O navegador bloqueou a janela de PDF. Permita pop-ups para exportar.')
+    return
   }
-}
-
-async function downloadHtmlAsPdf(html: string, filename: string): Promise<void> {
-  const iframe = document.createElement('iframe')
-  iframe.setAttribute('aria-hidden', 'true')
-  iframe.style.cssText =
-    'position:fixed;left:-12000px;top:0;width:794px;height:1123px;border:0;opacity:0;pointer-events:none;'
-  document.body.appendChild(iframe)
-
   try {
-    const doc = iframe.contentDocument
-    if (!doc) throw new Error('Falha ao criar documento temporário.')
-    doc.open()
-    doc.write(html)
-    doc.close()
-
-    await new Promise<void>((resolve) => {
-      if (doc.readyState === 'complete') resolve()
-      else iframe.addEventListener('load', () => resolve(), { once: true })
-    })
-
-    const imgs = Array.from(doc.images)
-    await Promise.all(
-      imgs.map((img) =>
-        img.complete
-          ? Promise.resolve()
-          : new Promise<void>((resolve) => {
-              img.addEventListener('load', () => resolve(), { once: true })
-              img.addEventListener('error', () => resolve(), { once: true })
-            }),
-      ),
-    )
-
-    const sheet = doc.querySelector('.sheet') as HTMLElement | null
-    const scaleBox = doc.querySelector('.sheet-scale') as HTMLElement | null
-    if (sheet && scaleBox) {
-      const avail = scaleBox.clientWidth || 794
-      const needed = Math.max(sheet.scrollWidth, sheet.offsetWidth, 1)
-      const scale = Math.min(1, avail / needed)
-      if (scale < 0.999) sheet.style.zoom = String(scale)
-    }
-
-    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
-
-    const target = (sheet || doc.body) as HTMLElement
-    const canvas = await html2canvas(target, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      backgroundColor: '#ffffff',
-      logging: false,
-      windowWidth: target.scrollWidth,
-      windowHeight: target.scrollHeight,
-    })
-
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-    const margin = 8
-    const pageWidth = pdf.internal.pageSize.getWidth()
-    const pageHeight = pdf.internal.pageSize.getHeight()
-    const usableWidth = pageWidth - margin * 2
-    const usableHeight = pageHeight - margin * 2
-    const imgWidth = usableWidth
-    const imgHeight = (canvas.height * imgWidth) / canvas.width
-    const imgData = canvas.toDataURL('image/jpeg', 0.95)
-
-    let heightLeft = imgHeight
-    let offsetY = margin
-    pdf.addImage(imgData, 'JPEG', margin, offsetY, imgWidth, imgHeight)
-    heightLeft -= usableHeight
-
-    while (heightLeft > 1) {
-      offsetY = margin - (imgHeight - heightLeft)
-      pdf.addPage()
-      pdf.addImage(imgData, 'JPEG', margin, offsetY, imgWidth, imgHeight)
-      heightLeft -= usableHeight
-    }
-
-    pdf.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`)
-  } finally {
-    iframe.remove()
+    win.opener = null
+  } catch {
+    /* ignore */
+  }
+  win.document.open()
+  win.document.write(html)
+  win.document.close()
+  try {
+    win.focus()
+  } catch {
+    /* ignore */
   }
 }
 
