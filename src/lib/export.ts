@@ -174,9 +174,9 @@ export function exportPdf(
   <meta charset="utf-8" />
   <title>${escapeHtml(number)}</title>
   <style>
-    /* Dimensões explícitas A4 paisagem — mais confiável que só "landscape" em alguns navegadores. */
+    /* A4 retrato (210×297mm). */
     @page {
-      size: 297mm 210mm;
+      size: 210mm 297mm;
       margin: 8mm;
     }
     * { box-sizing: border-box; }
@@ -188,7 +188,8 @@ export function exportPdf(
       background: #fff;
     }
     body {
-      min-width: 297mm;
+      min-width: 210mm;
+      max-width: 210mm;
     }
     body.pdf-liganer { font-size: 7px; }
 
@@ -216,12 +217,13 @@ export function exportPdf(
     @media print {
       .print-actions { display: none; }
       @page {
-        size: 297mm 210mm;
+        size: 210mm 297mm;
         margin: 8mm;
       }
       html, body {
-        width: 297mm;
-        min-height: 210mm;
+        width: 210mm;
+        min-height: 297mm;
+        max-width: none;
       }
     }
 
@@ -403,7 +405,7 @@ export function exportPdf(
 </head>
 <body class="${pdfClass}">
   <div class="print-actions">
-    <span class="print-hint">Orientação: paisagem (horizontal)</span>
+    <span class="print-hint">Orientação: retrato (vertical)</span>
     <button type="button" onclick="window.print()">Salvar em PDF</button>
   </div>
 
@@ -448,9 +450,9 @@ export function exportPdf(
 </body>
 </html>`
 
-  // Janela larga (proporção paisagem). Não usar noopener aqui: em Chrome/Edge
+  // Janela em proporção retrato. Não usar noopener: em Chrome/Edge
   // window.open(..., 'noopener') devolve null e o PDF deixa de abrir.
-  const win = window.open('', '_blank', 'width=1280,height=860,left=40,top=40')
+  const win = window.open('', '_blank', 'width=900,height=1200,left=40,top=20')
   if (!win) {
     alert('O navegador bloqueou a janela de PDF. Permita pop-ups para exportar.')
     return
