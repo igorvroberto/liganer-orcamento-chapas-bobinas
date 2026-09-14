@@ -815,7 +815,7 @@ export default function App() {
   async function handlePdfCliente() {
     const number = await savePdfClienteBudget()
     if (!number) return
-    await exportPdf('cliente', model, client, rows, conditions, summary, { number })
+    exportPdf('cliente', model, client, rows, conditions, summary, { number })
   }
 
   async function openSavedPdfCliente(item: BudgetListItem) {
@@ -829,7 +829,7 @@ export default function App() {
     const savedConditions = record.conditions || {}
     const savedSummary =
       record.summary || calculateSummary(savedModel.id, record.rows, savedConditions)
-    await exportPdf(
+    exportPdf(
       'cliente',
       savedModel,
       record.client || { name: '', cnpj: '' },
@@ -839,7 +839,7 @@ export default function App() {
       { number: key },
     )
     setStatus({
-      text: `PDF do orçamento ${key} baixado.`,
+      text: `PDF do orçamento ${key} aberto.`,
       kind: 'ok',
     })
   }
@@ -1208,7 +1208,7 @@ export default function App() {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => void exportPdf('liganer', model, client, rows, conditions, summary)}
+            onClick={() => exportPdf('liganer', model, client, rows, conditions, summary)}
           >
             PDF Liganer
           </button>
