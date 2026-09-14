@@ -448,15 +448,17 @@ export function exportPdf(
 </body>
 </html>`
 
-  // Janela larga (proporção paisagem) ajuda o preview e o diálogo de impressão.
-  const win = window.open(
-    '',
-    '_blank',
-    'noopener,noreferrer,width=1280,height=860,left=40,top=40',
-  )
+  // Janela larga (proporção paisagem). Não usar noopener aqui: em Chrome/Edge
+  // window.open(..., 'noopener') devolve null e o PDF deixa de abrir.
+  const win = window.open('', '_blank', 'width=1280,height=860,left=40,top=40')
   if (!win) {
     alert('O navegador bloqueou a janela de PDF. Permita pop-ups para exportar.')
     return
+  }
+  try {
+    win.opener = null
+  } catch {
+    /* ignore */
   }
   win.document.open()
   win.document.write(html)
