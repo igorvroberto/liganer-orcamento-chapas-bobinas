@@ -135,8 +135,7 @@ function commercialFields(): FieldDef[] {
       virtual: true,
       calc: 'precoFator100',
     },
-    { key: 'fator_maximo', label: 'Fator\nmáximo', aliases: ['fator maximo', 'fator máximo'], type: 'number' },
-    { key: 'fator_utilizado', label: 'Fator\nutilizado', aliases: ['fator utilizado', 'fator usado'], type: 'number' },
+    { key: 'fator_utilizado', label: 'Fator', aliases: ['fator', 'fator utilizado', 'fator usado'], type: 'number' },
     calcField('_preco_fator_utilizado', 'Preço\nfator utilizado', 'currency', 'precoFatorUtilizado'),
     { key: 'comissao', label: 'Comissão', aliases: ['comissao', 'comissão'], options: COMMISSION_OPTIONS, askWhenNew: true },
   ]
@@ -303,7 +302,6 @@ export function itemHeaderLabel(label: string): string {
 
 /** Campos internos omitidos no PDF do cliente */
 export const HIDDEN_FROM_CLIENT = new Set([
-  'fator_maximo',
   'fator_utilizado',
   'comissao',
   'preco_fator_100',
