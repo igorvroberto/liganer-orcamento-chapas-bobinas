@@ -844,6 +844,27 @@ export default function App() {
     })
   }
 
+  async function exportSavedXlsx(item: BudgetListItem) {
+    const record = await resolveSavedRecord(item)
+    if (!record?.rows?.length) {
+      if (record) setStatus({ text: 'Orçamento sem itens para exportar XLSX.', kind: 'error' })
+      return
+    }
+    const key = record.number || item.number || item.name || item.id
+    const savedModel = getModel(record.modelId || modelId)
+    exportExcel(
+      savedModel,
+      record.client || { name: '', cnpj: '' },
+      record.rows,
+      record.conditions || {},
+      { number: key },
+    )
+    setStatus({
+      text: `XLSX do orçamento ${key} baixado.`,
+      kind: 'ok',
+    })
+  }
+
   async function editSavedBudget(item: BudgetListItem) {
     const record = await resolveSavedRecord(item)
     if (!record?.rows?.length) {
@@ -1191,17 +1212,6 @@ export default function App() {
           >
             PDF Liganer
           </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() =>
-              exportExcel(model, client, rows, conditions, {
-                number: editingBudget?.number,
-              })
-            }
-          >
-            XLSX
-          </button>
           {editingBudget ? (
             <button type="button" className="btn btn-secondary" onClick={cancelEditingBudget}>
               Cancelar edição
@@ -1250,6 +1260,13 @@ export default function App() {
                             onClick={() => void openSavedPdfCliente(item)}
                           >
                             PDF
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-compact"
+                            onClick={() => void exportSavedXlsx(item)}
+                          >
+                            XLSX
                           </button>
                           <button
                             type="button"
