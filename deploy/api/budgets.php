@@ -95,6 +95,7 @@ if ($method === 'GET') {
         if ($name === '') {
             $name = '—';
         }
+        $owner = is_array($data['owner'] ?? null) ? $data['owner'] : null;
         $items[] = [
             'id' => (string) ($data['id'] ?? basename($file, '.json')),
             'number' => $number !== '' ? $number : null,
@@ -106,6 +107,11 @@ if ($method === 'GET') {
             'createdAt' => $createdAt !== '' ? $createdAt : null,
             'savedAt' => $savedAt !== '' ? $savedAt : null,
             'source' => isset($data['source']) ? (string) $data['source'] : null,
+            'owner' => $owner ? [
+                'id' => (string) ($owner['id'] ?? $owner['email'] ?? ''),
+                'email' => (string) ($owner['email'] ?? ''),
+                'name' => (string) ($owner['name'] ?? $owner['email'] ?? ''),
+            ] : null,
         ];
     }
 

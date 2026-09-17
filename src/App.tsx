@@ -39,6 +39,7 @@ import {
   loadPriceCatalogFromExcel,
   pruneInvalidCatalogSelections,
 } from './lib/priceCatalog'
+import { fetchVendasUser, vendasLoginUrl, type VendasUser } from './lib/vendasAuth'
 import type { BudgetListItem, BudgetRecord, ClientInfo, Conditions, FieldDef, ItemRow } from './lib/types'
 
 function isCalculatedForRow(field: FieldDef, modelId: string, row: ItemRow): boolean {
@@ -244,11 +245,13 @@ export default function App() {
     id: string
     number: string
     createdAt?: string
+    owner?: VendasUser | null
   } | null>(null)
   const [priceCatalogVersion, setPriceCatalogVersion] = useState(0)
   const [activeRowIndex, setActiveRowIndex] = useState(0)
   const [teamSync, setTeamSync] = useState<'off' | 'ok' | 'error'>('off')
   const [teamSyncDetail, setTeamSyncDetail] = useState('')
+  const [vendasUser, setVendasUser] = useState<VendasUser | null>(null)
 
   const model = getModel(modelId)
   const baseFields = useMemo(() => itemFields(model), [model])
@@ -265,6 +268,10 @@ export default function App() {
 
   useEffect(() => {
     void loadConfig().then(setConfig)
+  }, [])
+
+  useEffect(() => {
+    void fetchVendasUser().then(setVendasUser)
   }, [])
 
   useEffect(() => {
@@ -430,9 +437,23 @@ export default function App() {
       })
       return null
     }
+    let user = vendasUser
+    if (!user) {
+      user = await fetchVendasUser()
+      setVendasUser(user)
+    }
+    if (!user) {
+      setStatus({
+        text: 'Faça login em vendas.liganer.com.br para salvar na lista da equipe.',
+        kind: 'error',
+      })
+      window.location.assign(vendasLoginUrl(`${import.meta.env.BASE_URL}`))
+      return null
+    }
     const nowIso = new Date().toISOString()
     const editing = editingBudget
     let number = editing?.number || localPrintNumber()
+    const owner = editing?.owner?.email ? editing.owner : user
     const record = {
       id: editing?.id || `orcamento-${Date.now()}`,
       createdAt: editing?.createdAt || nowIso,
@@ -446,6 +467,7 @@ export default function App() {
       source: 'salvar' as const,
       number,
       name: number,
+      owner,
     }
     if (editing) upsertSavedBudget(record)
     else pushSavedBudget(record)
@@ -579,6 +601,7 @@ export default function App() {
       id: record.id,
       number,
       createdAt: record.createdAt,
+      owner: record.owner || item.owner || null,
     })
     setStatus({
       text: `Editando orçamento ${number}. Altere os campos e clique em Salvar para atualizar.`,
@@ -633,6 +656,18 @@ export default function App() {
         <div>
           <p className="eyebrow">Liganer</p>
           <h1>Orçamento de chapas e bobinas</h1>
+        </div>
+        <div className="session-chip">
+          {vendasUser ? (
+            <>
+              <strong>{vendasUser.name}</strong>
+              <span>{vendasUser.email}</span>
+            </>
+          ) : (
+            <a className="btn btn-secondary btn-compact" href={vendasLoginUrl(`${import.meta.env.BASE_URL}`)}>
+              Entrar
+            </a>
+          )}
         </div>
       </div>
       {model.status === 'pending' && (
@@ -838,6 +873,7 @@ export default function App() {
                   <th>Nome do orçamento</th>
                   <th>Cliente</th>
                   <th>CNPJ</th>
+                  <th>Dono</th>
                   <th>Dia/horário</th>
                   <th>Ações</th>
                 </tr>
@@ -853,6 +889,7 @@ export default function App() {
                       <td>{item.name}</td>
                       <td>{item.client.name?.trim() || '—'}</td>
                       <td>{item.client.cnpj?.trim() || '—'}</td>
+                      <td>{item.owner?.name?.trim() || item.owner?.email?.trim() || '—'}</td>
                       <td>{when ? new Date(when).toLocaleString('pt-BR') : '—'}</td>
                       <td>
                         <div className="saved-budget-actions">

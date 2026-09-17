@@ -21,9 +21,11 @@ jobs:
 
       - name: Prepare publish folder
         run: |
-          mkdir -p root-dist
+          mkdir -p root-dist/auth
           cp deploy/root-index/index.html root-dist/index.html
+          cp deploy/root-index/login.html root-dist/login.html
           cp deploy/root-index/liganer_favicon.webp root-dist/liganer_favicon.webp
+          cp deploy/root-index/auth/*.php root-dist/auth/
 
       - name: Deploy root index via FTP/FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
