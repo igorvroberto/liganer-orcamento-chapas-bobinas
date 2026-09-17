@@ -12,12 +12,13 @@
         --bg: #f2f2f2;
         --paper: #ffffff;
         --ink: #17211d;
-        --muted: #5c5c5c;
+        --muted: #56635d;
         --brand: #c60000;
         --brand-2: #c60000;
-        --line: #e0e0e0;
+        --line: #d8dfd9;
         --shadow: 0 16px 40px rgba(20, 37, 31, 0.11);
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
       }
 
       * {
@@ -28,9 +29,7 @@
         margin: 0;
         min-height: 100vh;
         color: var(--ink);
-        background:
-          linear-gradient(180deg, rgba(198, 0, 0, 0.08), transparent 260px),
-          var(--bg);
+        background: linear-gradient(180deg, rgba(198, 0, 0, 0.08), transparent 260px), var(--bg);
       }
 
       body.booting main {
@@ -47,7 +46,7 @@
       .hero,
       .apps {
         background: var(--paper);
-        border: 1px solid rgba(224, 224, 224, 0.9);
+        border: 1px solid rgba(216, 223, 217, 0.9);
         border-radius: 8px;
         box-shadow: var(--shadow);
       }
@@ -88,15 +87,6 @@
         letter-spacing: -0.02em;
       }
 
-      .brand-tag {
-        margin: 4px 0 0;
-        color: var(--muted);
-        font-size: 0.84rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-      }
-
       .session {
         text-align: right;
       }
@@ -133,16 +123,21 @@
         font-weight: 700;
       }
 
-      .lede {
-        margin: 10px 0 0;
-        color: var(--muted);
-        font-size: 1rem;
-        max-width: 62ch;
-      }
-
       .apps {
         margin-top: 20px;
         padding: 20px;
+      }
+
+      .apps + .apps {
+        margin-top: 16px;
+      }
+
+      .section-title {
+        margin: 0 0 14px;
+        color: var(--ink);
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.01em;
       }
 
       .apps-grid {
@@ -156,7 +151,7 @@
         padding: 18px;
         border: 1px solid var(--line);
         border-radius: 8px;
-        background: linear-gradient(180deg, #fff, #f7f7f7);
+        background: linear-gradient(180deg, #fff, #fbfbf7);
         color: inherit;
         text-decoration: none;
         transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
@@ -171,16 +166,10 @@
       }
 
       .app-title {
-        margin: 0 0 8px;
+        margin: 0;
         color: var(--brand);
         font-size: 1.1rem;
         font-weight: 700;
-      }
-
-      .app-desc {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.96rem;
       }
     </style>
   </head>
@@ -189,15 +178,9 @@
       <section class="hero">
         <div class="hero-top">
           <div class="hero-brand">
-            <img
-              src="/liganer_favicon.webp"
-              alt="Liganer"
-              width="56"
-              height="56"
-            />
+            <img src="/liganer_favicon.webp" alt="Liganer" width="56" height="56" />
             <div>
               <p class="brand-name">Liganer</p>
-              <p class="brand-tag">Aço inoxidável</p>
             </div>
           </div>
           <div class="session" id="session" hidden>
@@ -206,27 +189,35 @@
             <button type="button" id="logout">Sair</button>
           </div>
         </div>
-        <h1>Sistemas de vendas</h1>
-        <p class="lede">
-          Acesso rápido aos sistemas atualmente publicados em vendas.liganer.com.br.
-        </p>
+        <h1>Sistema de vendas</h1>
       </section>
 
-      <section class="apps" aria-label="Links dos sistemas">
+      <section class="apps" aria-labelledby="orcamento-title">
+        <h2 class="section-title" id="orcamento-title">Orçamento</h2>
         <div class="apps-grid">
-          <a class="app-link" href="/orcamento/blanks-slitters/">
-            <h2 class="app-title">Blanks e slitters</h2>
-            <p class="app-desc">Sistema comercial de blanks.</p>
+          <a class="app-link" href="/orcamento/chapas-bobinas/">
+            <h3 class="app-title">Chapas e bobinas</h3>
           </a>
 
-          <a class="app-link" href="/orcamento/chapas-bobinas/">
-            <h2 class="app-title">Chapas e bobinas</h2>
-            <p class="app-desc">Orçamento comercial com preços via planilha Excel.</p>
+          <a class="app-link" href="/orcamento/blanks-slitters/">
+            <h3 class="app-title">Blanks e slitters</h3>
+          </a>
+
+          <a class="app-link" href="/orcamento/ace/">
+            <h3 class="app-title">ACE</h3>
+          </a>
+        </div>
+      </section>
+
+      <section class="apps" aria-labelledby="ferramentas-title">
+        <h2 class="section-title" id="ferramentas-title">Ferramentas</h2>
+        <div class="apps-grid">
+          <a class="app-link" href="/comparador-preco/">
+            <h3 class="app-title">Comparador de preço</h3>
           </a>
 
           <a class="app-link" href="/prospeccao/">
-            <h2 class="app-title">Prospecção</h2>
-            <p class="app-desc">Sistema comercial de prospecção.</p>
+            <h3 class="app-title">Prospecção</h3>
           </a>
         </div>
       </section>
