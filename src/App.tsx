@@ -605,7 +605,7 @@ export default function App() {
       owner: record.owner || item.owner || null,
     })
     setStatus({
-      text: `Editando orçamento ${number}. Altere os campos e clique em Salvar para atualizar.`,
+      text: `Editando orçamento ${number}. Use Atualizar para gravar as alterações.`,
       kind: 'ok',
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -829,7 +829,7 @@ export default function App() {
         </div>
         <div className="actions" style={{ marginTop: 16 }}>
           <button type="button" className="btn btn-dark" onClick={() => void handleSave()}>
-            {editingBudget ? `Atualizar ${editingBudget.number}` : 'Salvar'}
+            {editingBudget ? 'Atualizar' : 'Salvar'}
           </button>
           {editingBudget ? (
             <button type="button" className="btn btn-secondary" onClick={cancelEditingBudget}>
@@ -862,8 +862,8 @@ export default function App() {
         </p>
         {editingBudget ? (
           <p className="editing-banner">
-            Editando orçamento <strong>{editingBudget.number}</strong>. Clique em Salvar para
-            atualizar este número.
+            Editando orçamento <strong>{editingBudget.number}</strong>. Use{' '}
+            <strong>Atualizar</strong> para gravar as alterações
           </p>
         ) : null}
         {savedBudgets.length ? (
