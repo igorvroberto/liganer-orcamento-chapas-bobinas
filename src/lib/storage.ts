@@ -244,6 +244,37 @@ export async function listBudgetsRemote(
   }
 }
 
+/** Envia orçamentos só locais para o servidor (números ainda não remotos). */
+export async function uploadLocalBudgetsMissingRemote(
+  config: SyncConfig,
+): Promise<{ uploaded: number; error?: string }> {
+  if (!config.syncSecret) return { uploaded: 0 }
+  const remote = await listBudgetsRemote(config)
+  if (!remote.ok) {
+    return { uploaded: 0, error: remote.error || 'Falha ao listar remoto.' }
+  }
+  const remoteNumbers = new Set(
+    remote.items.map((item) => String(item.number ?? '').trim()).filter(Boolean),
+  )
+  let uploaded = 0
+  for (const record of loadSavedBudgets()) {
+    if (!record.rows?.length) continue
+    const number = String(record.number ?? '').trim()
+    if (number && remoteNumbers.has(number)) continue
+    const saved = await saveBudgetRemote(record, config)
+    if (!saved.ok || !saved.number) continue
+    uploaded += 1
+    remoteNumbers.add(saved.number)
+    upsertSavedBudget({
+      ...record,
+      number: saved.number,
+      name: saved.number,
+      savedAt: new Date().toISOString(),
+    })
+  }
+  return { uploaded }
+}
+
 /** Junta remoto + local, priorizando remoto quando houver o mesmo número. */
 export function mergeBudgetLists(
   remote: BudgetListItem[],

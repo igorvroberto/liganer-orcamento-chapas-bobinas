@@ -198,6 +198,20 @@ select:disabled {
   margin: 0;
 }
 
+.sync-note {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.sync-note-ok {
+  color: #2f6b4f;
+}
+
+.sync-note-error {
+  color: var(--danger);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

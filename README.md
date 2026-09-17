@@ -49,7 +49,7 @@ Acabamento é filtrado pelo tipo; espessura pelo par tipo+acabamento (como em bl
 - Preço fator 100 e ICMS pela planilha Excel
 - Peso, fator utilizado, frete %, IPI 3,25%
 - Exportação: PDF cliente, PDF Liganer, Excel, CSV
-- Salvar orçamento (local e/ou API com `syncSecret`)
+- Salvar orçamento no servidor (lista compartilhada da equipe) e cópia local
 
 ## Deploy
 
