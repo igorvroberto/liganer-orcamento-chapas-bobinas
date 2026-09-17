@@ -251,7 +251,7 @@ export async function listBudgetsRemote(
   }
 }
 
-/** Envia orçamentos só locais para o servidor (números ainda não remotos). */
+/** Envia orçamentos só locais para o servidor (ainda sem id remoto). */
 export async function uploadLocalBudgetsMissingRemote(
   config: SyncConfig,
 ): Promise<{ uploaded: number; error?: string }> {
@@ -260,17 +260,23 @@ export async function uploadLocalBudgetsMissingRemote(
   if (!remote.ok) {
     return { uploaded: 0, error: remote.error || 'Falha ao listar remoto.' }
   }
+  const remoteIds = new Set(remote.items.map((item) => String(item.id ?? '').trim()).filter(Boolean))
   const remoteNumbers = new Set(
     remote.items.map((item) => String(item.number ?? '').trim()).filter(Boolean),
   )
   let uploaded = 0
   for (const record of loadSavedBudgets()) {
     if (!record.rows?.length) continue
-    const number = String(record.number ?? '').trim()
-    if (number && remoteNumbers.has(number)) continue
-    const saved = await saveBudgetRemote(record, config)
+    const id = String(record.id ?? '').trim()
+    if (id && remoteIds.has(id)) continue
+    // Sem número no POST de criação: servidor atribui e nunca sobrescreve alheio.
+    const { number: _number, name: _name, ...toSend } = record
+    void _number
+    void _name
+    const saved = await saveBudgetRemote(toSend, config)
     if (!saved.ok || !saved.number) continue
     uploaded += 1
+    if (id) remoteIds.add(id)
     remoteNumbers.add(saved.number)
     upsertSavedBudget({
       ...record,

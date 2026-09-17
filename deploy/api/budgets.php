@@ -133,18 +133,29 @@ if (!is_array($payload)) {
     exit;
 }
 
+$payloadId = trim((string) ($payload['id'] ?? ''));
 $existingNumber = preg_replace('/\D+/', '', (string) ($payload['number'] ?? ''));
 $existingFile = $existingNumber !== '' ? ($dataDir . '/orcamento-' . $existingNumber . '.json') : '';
-$updating = $existingNumber !== '' && is_readable($existingFile);
+$previous = null;
+$updating = false;
+
+// Só atualiza se o number existir E o id for o mesmo registro.
+// Número gerado em outro navegador NÃO pode sobrescrever orçamento alheio.
+if ($existingNumber !== '' && is_readable($existingFile)) {
+    $previous = json_decode((string) file_get_contents($existingFile), true);
+    $previousId = is_array($previous) ? trim((string) ($previous['id'] ?? '')) : '';
+    if ($payloadId !== '' && $previousId !== '' && hash_equals($previousId, $payloadId)) {
+        $updating = true;
+    }
+}
 
 if ($updating) {
     $number = $existingNumber;
-    $previous = json_decode((string) file_get_contents($existingFile), true);
     if (is_array($previous) && !empty($previous['createdAt']) && empty($payload['createdAt'])) {
         $payload['createdAt'] = $previous['createdAt'];
     }
-    if (is_array($previous) && !empty($previous['id']) && empty($payload['id'])) {
-        $payload['id'] = $previous['id'];
+    if (is_array($previous) && !empty($previous['owner']) && empty($payload['owner'])) {
+        $payload['owner'] = $previous['owner'];
     }
 } else {
     $stamp = date('ymd');

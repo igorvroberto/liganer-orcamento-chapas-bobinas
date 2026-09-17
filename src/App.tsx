@@ -23,7 +23,6 @@ import {
   loadConfig,
   listBudgetsRemote,
   loadDraft,
-  localPrintNumber,
   mergeBudgetLists,
   pushSavedBudget,
   removeSavedBudget,
@@ -452,7 +451,6 @@ export default function App() {
     }
     const nowIso = new Date().toISOString()
     const editing = editingBudget
-    let number = editing?.number || localPrintNumber()
     const owner = editing?.owner?.email ? editing.owner : user
     const record = {
       id: editing?.id || `orcamento-${Date.now()}`,
@@ -465,12 +463,15 @@ export default function App() {
       conditions,
       summary,
       source: 'salvar' as const,
-      number,
-      name: number,
+      // Número só na edição; criação deixa o servidor atribuir (evita sobrescrever).
+      ...(editing?.number
+        ? { number: editing.number, name: editing.number }
+        : {}),
       owner,
     }
-    if (editing) upsertSavedBudget(record)
-    else pushSavedBudget(record)
+    let number = editing?.number || ''
+    if (editing) upsertSavedBudget({ ...record, number: number || record.id, name: number || record.id })
+    else pushSavedBudget({ ...record, number: number || record.id, name: number || record.id })
 
     const remote = await saveBudgetRemote(record, config)
     if (remote.ok && remote.number) {
