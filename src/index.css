@@ -67,6 +67,23 @@ button {
   margin-bottom: 10px;
 }
 
+.session-chip {
+  margin-left: auto;
+  text-align: right;
+  display: grid;
+  gap: 2px;
+  justify-items: end;
+}
+
+.session-chip strong {
+  font-size: 0.9rem;
+}
+
+.session-chip span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .brand-mark {
   width: 42px;
   height: 42px;

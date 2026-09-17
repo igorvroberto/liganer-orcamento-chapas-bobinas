@@ -37,9 +37,10 @@ Prefira **FTPS**. Se o HostGator só aceitar FTP puro, edite `.github/workflows/
 
 Há um workflow separado: **Deploy root index to vendas.liganer.com.br**.
 
-- Fonte: `deploy/root-index/index.html`
+- Fonte: `deploy/root-index/` (`index.html`, `login.html`, `auth/*.php`, favicon)
 - Destino FTP: `/vendas.liganer.com.br/`
-- Publica apenas o `index.html` da raiz, sem mexer em `/orcamento/blanks-slitters/`, `/orcamento/chapas-bobinas/` e `/prospeccao/`
+- Publica o portal + **login compartilhado** (`/auth/me.php`). Ver [root-index/AUTH.md](root-index/AUTH.md).
+- Não mexe em `/orcamento/blanks-slitters/`, `/orcamento/chapas-bobinas/` e `/prospeccao/`
 
 Roda automaticamente no push da `main` quando `deploy/root-index/` (ou o próprio workflow) muda. Também dá para disparar em **Actions → Run workflow**.
 

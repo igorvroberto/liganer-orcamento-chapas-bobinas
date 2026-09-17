@@ -106,6 +106,13 @@ export function savedBudgetsAsListItems(records: BudgetRecord[] = loadSavedBudge
       createdAt: record.createdAt ?? null,
       savedAt: record.savedAt ?? record.createdAt ?? null,
       source: record.source ?? null,
+      owner: record.owner
+        ? {
+            id: record.owner.id,
+            email: record.owner.email,
+            name: record.owner.name,
+          }
+        : null,
     }))
     .sort((a, b) => String(b.savedAt ?? '').localeCompare(String(a.savedAt ?? '')))
 }

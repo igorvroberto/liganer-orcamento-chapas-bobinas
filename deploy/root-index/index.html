@@ -33,10 +33,15 @@
           var(--bg);
       }
 
+      body.booting main {
+        opacity: 0;
+      }
+
       main {
         width: min(980px, calc(100% - 32px));
         margin: 0 auto;
         padding: 40px 0 56px;
+        transition: opacity 120ms ease;
       }
 
       .hero,
@@ -51,11 +56,18 @@
         padding: 28px;
       }
 
+      .hero-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 14px;
+      }
+
       .hero-brand {
         display: flex;
         align-items: center;
         gap: 14px;
-        margin-bottom: 14px;
       }
 
       .hero-brand img {
@@ -83,6 +95,34 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.04em;
+      }
+
+      .session {
+        text-align: right;
+      }
+
+      .session strong {
+        display: block;
+        font-size: 0.95rem;
+      }
+
+      .session span {
+        display: block;
+        color: var(--muted);
+        font-size: 0.82rem;
+        margin: 2px 0 8px;
+      }
+
+      .session button {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 6px 10px;
+        cursor: pointer;
       }
 
       h1 {
@@ -144,19 +184,26 @@
       }
     </style>
   </head>
-  <body>
+  <body class="booting">
     <main>
       <section class="hero">
-        <div class="hero-brand">
-          <img
-            src="/liganer_favicon.webp"
-            alt="Liganer"
-            width="56"
-            height="56"
-          />
-          <div>
-            <p class="brand-name">Liganer</p>
-            <p class="brand-tag">Aço inoxidável</p>
+        <div class="hero-top">
+          <div class="hero-brand">
+            <img
+              src="/liganer_favicon.webp"
+              alt="Liganer"
+              width="56"
+              height="56"
+            />
+            <div>
+              <p class="brand-name">Liganer</p>
+              <p class="brand-tag">Aço inoxidável</p>
+            </div>
+          </div>
+          <div class="session" id="session" hidden>
+            <strong id="user-name"></strong>
+            <span id="user-email"></span>
+            <button type="button" id="logout">Sair</button>
           </div>
         </div>
         <h1>Sistemas de vendas</h1>
@@ -184,5 +231,36 @@
         </div>
       </section>
     </main>
+    <script>
+      async function requireSession() {
+        try {
+          const res = await fetch('/auth/me.php', { credentials: 'same-origin', cache: 'no-store' })
+          if (!res.ok) {
+            location.replace('/login.html?next=' + encodeURIComponent('/'))
+            return
+          }
+          const data = await res.json()
+          document.getElementById('user-name').textContent = data.user.name
+          document.getElementById('user-email').textContent = data.user.email
+          document.getElementById('session').hidden = false
+          document.body.classList.remove('booting')
+        } catch (_) {
+          location.replace('/login.html?next=' + encodeURIComponent('/'))
+        }
+      }
+
+      document.getElementById('logout').addEventListener('click', async () => {
+        try {
+          await fetch('/auth/logout.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+        } catch (_) {}
+        location.replace('/login.html')
+      })
+
+      requireSession()
+    </script>
   </body>
 </html>
