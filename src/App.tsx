@@ -30,6 +30,7 @@ import {
   saveBudgetRemote,
   saveDraft,
   savedBudgetsAsListItems,
+  uploadLocalBudgetsMissingRemote,
   upsertSavedBudget,
   type SyncConfig,
 } from './lib/storage'
@@ -246,6 +247,8 @@ export default function App() {
   } | null>(null)
   const [priceCatalogVersion, setPriceCatalogVersion] = useState(0)
   const [activeRowIndex, setActiveRowIndex] = useState(0)
+  const [teamSync, setTeamSync] = useState<'off' | 'ok' | 'error'>('off')
+  const [teamSyncDetail, setTeamSyncDetail] = useState('')
 
   const model = getModel(modelId)
   const baseFields = useMemo(() => itemFields(model), [model])
@@ -269,13 +272,30 @@ export default function App() {
     async function refreshSavedBudgets(nextConfig: SyncConfig) {
       const local = savedBudgetsAsListItems()
       if (!nextConfig.syncSecret) {
-        if (!cancelled) setSavedBudgets(local)
+        if (!cancelled) {
+          setSavedBudgets(local)
+          setTeamSync('off')
+          setTeamSyncDetail('Salvos só neste navegador.')
+        }
         return
       }
+      const uploaded = await uploadLocalBudgetsMissingRemote(nextConfig)
+      if (cancelled) return
       const remote = await listBudgetsRemote(nextConfig)
       if (cancelled) return
-      if (remote.ok) setSavedBudgets(mergeBudgetLists(remote.items, local))
-      else setSavedBudgets(local)
+      if (remote.ok) {
+        setSavedBudgets(mergeBudgetLists(remote.items, savedBudgetsAsListItems()))
+        setTeamSync('ok')
+        const extra =
+          uploaded.uploaded > 0
+            ? ` ${uploaded.uploaded} orçamento(s) deste navegador enviados ao servidor.`
+            : ''
+        setTeamSyncDetail(`Lista compartilhada da equipe.${extra}`)
+      } else {
+        setSavedBudgets(local)
+        setTeamSync('error')
+        setTeamSyncDetail(remote.error || uploaded.error || 'Não foi possível ler o servidor.')
+      }
     }
     void refreshSavedBudgets(config)
     return () => {
@@ -360,10 +380,20 @@ export default function App() {
     const local = savedBudgetsAsListItems()
     if (!nextConfig.syncSecret) {
       setSavedBudgets(local)
+      setTeamSync('off')
+      setTeamSyncDetail('Salvos só neste navegador.')
       return
     }
     const remote = await listBudgetsRemote(nextConfig)
-    setSavedBudgets(remote.ok ? mergeBudgetLists(remote.items, local) : local)
+    if (remote.ok) {
+      setSavedBudgets(mergeBudgetLists(remote.items, local))
+      setTeamSync('ok')
+      setTeamSyncDetail('Lista compartilhada da equipe.')
+    } else {
+      setSavedBudgets(local)
+      setTeamSync('error')
+      setTeamSyncDetail(remote.error || 'Não foi possível ler o servidor.')
+    }
   }
 
   async function resolveSavedRecord(item: BudgetListItem): Promise<BudgetRecord | null> {
@@ -430,7 +460,9 @@ export default function App() {
         savedAt: new Date().toISOString(),
       })
       setStatus({
-        text: editing ? `Orçamento ${number} atualizado.` : `Orçamento salvo: ${number}.`,
+        text: editing
+          ? `Orçamento ${number} atualizado no servidor.`
+          : `Orçamento salvo na lista da equipe: ${number}.`,
         kind: 'ok',
       })
     } else {
@@ -772,7 +804,26 @@ export default function App() {
       </section>
 
       <section className="card">
-        <h2>Orçamentos salvos</h2>
+        <div className="section-heading">
+          <h2>Orçamentos salvos</h2>
+          {config.syncSecret ? (
+            <button
+              type="button"
+              className="btn btn-secondary btn-compact"
+              onClick={() => void refreshSavedBudgetsList().then(() => setStatus({ text: 'Lista atualizada.', kind: 'ok' }))}
+            >
+              Atualizar lista
+            </button>
+          ) : null}
+        </div>
+        <p
+          className={`sync-note${teamSync === 'error' ? ' sync-note-error' : teamSync === 'ok' ? ' sync-note-ok' : ''}`}
+        >
+          {teamSyncDetail ||
+            (config.syncSecret
+              ? 'Sincronizando com o servidor…'
+              : 'Salvos só neste navegador.')}
+        </p>
         {editingBudget ? (
           <p className="editing-banner">
             Editando orçamento <strong>{editingBudget.number}</strong>. Clique em Salvar para

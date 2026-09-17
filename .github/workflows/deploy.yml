@@ -32,8 +32,26 @@ jobs:
         run: |
           mkdir -p dist/api
           cp deploy/api/budgets.php dist/api/budgets.php
-          # Não publica config.json nem pasta data/ (criada uma vez no host).
-          rm -f dist/config.json
+          # Publica config.json (sync da equipe). data/ permanece só no host.
+          if [ -n "${{ secrets.ORCAMENTO_SYNC_SECRET }}" ]; then
+            python3 - <<'PY'
+          import json
+          secret = """${{ secrets.ORCAMENTO_SYNC_SECRET }}""".strip()
+          cfg = {
+              "saveUrl": "/orcamento/chapas-bobinas/api/budgets.php",
+              "printNumberUrl": "",
+              "syncSecret": secret,
+          }
+          with open("dist/config.json", "w", encoding="utf-8") as fh:
+              json.dump(cfg, fh, ensure_ascii=False, indent=2)
+              fh.write("\n")
+          print("config.json gerado com ORCAMENTO_SYNC_SECRET")
+          PY
+          elif [ ! -f dist/config.json ]; then
+            echo "AVISO: sem dist/config.json — sync da equipe ficará desligado"
+          else
+            echo "Usando public/config.json do build"
+          fi
           rm -rf dist/data
 
       - name: Normalize FTP server dir
@@ -59,5 +77,4 @@ jobs:
           exclude: |
             **/.git*
             **/.git*/**
-            **/config.json
             **/data/**

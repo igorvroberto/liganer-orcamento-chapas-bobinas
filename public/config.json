@@ -1,6 +1,6 @@
 {
-  "_comment": "Opcional. Sem syncSecret, orçamentos ficam só no navegador (localStorage). No deploy, injete o segredo como nos outros apps de vendas.",
-  "saveUrl": "",
+  "_comment": "Sync da equipe em vendas.liganer.com.br. O deploy publica este arquivo; a pasta data/ no host guarda os JSON.",
+  "saveUrl": "/orcamento/chapas-bobinas/api/budgets.php",
   "printNumberUrl": "",
-  "syncSecret": ""
+  "syncSecret": "Ig0r-AcessO"
 }

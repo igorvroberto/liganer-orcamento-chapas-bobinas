@@ -58,23 +58,23 @@ URL pública: `https://vendas.liganer.com.br/orcamento/tabelas/precos-chapas-bob
 ### Primeira publicação
 
 1. Confirme que a pasta `orcamento/chapas-bobinas` existe no servidor (File Manager).
-2. Crie **uma vez** no host a pasta `orcamento/chapas-bobinas/data/` (gravável pelo PHP). O Action **não** cria nem sobrescreve `data/`.
+2. A pasta `orcamento/chapas-bobinas/data/` é criada pelo PHP no primeiro save (ou crie manualmente, gravável).
 3. Merge do PR / push na `main`, ou **Actions → Deploy… → Run workflow**.
-4. No servidor, crie/edite **apenas no host** o `config.json` (o deploy **não sobrescreve** esse arquivo):
+4. O deploy publica `config.json` com `syncSecret` (de `public/config.json`, ou do secret `ORCAMENTO_SYNC_SECRET` se existir). Assim a lista **Orçamentos salvos** fica compartilhada pela equipe.
 
 ```json
 {
   "saveUrl": "/orcamento/chapas-bobinas/api/budgets.php",
-  "syncSecret": "SEU_SEGREDO_FORTE"
+  "syncSecret": "SEU_SEGREDO"
 }
 ```
 
 ### O que o Action envia
 
-- Conteúdo de `dist/` (HTML/JS/CSS do Vite)
+- Conteúdo de `dist/` (HTML/JS/CSS do Vite), incluindo `config.json`
 - `api/budgets.php`
 - **Não** apaga o servidor inteiro (`dangerous-clean-slate: false`)
-- **Não** sobrescreve `config.json` nem arquivos em `data/`
+- **Não** apaga arquivos em `data/` (orçamentos da equipe)
 
 ## Build local
 
@@ -91,4 +91,4 @@ A pasta `dist/` sai com `base: /orcamento/chapas-bobinas/`.
 - [ ] Pasta `orcamento/chapas-bobinas/` existe no host
 - [ ] Workflow verde em Actions após push na `main`
 - [ ] `https://vendas.liganer.com.br/orcamento/chapas-bobinas/` abre com título `Liganer · Orçamento`
-- [ ] `config.json` no servidor (opcional) não foi commitado no Git
+- [ ] `config.json` acessível e Salvar grava em `data/` (lista da equipe)
