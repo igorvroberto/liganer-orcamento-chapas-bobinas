@@ -605,7 +605,7 @@ export default function App() {
       owner: record.owner || item.owner || null,
     })
     setStatus({
-      text: `Editando orçamento ${number}. Altere os campos e clique em Salvar para atualizar.`,
+      text: `Editando orçamento ${number}. Use Atualizar para gravar as alterações.`,
       kind: 'ok',
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
