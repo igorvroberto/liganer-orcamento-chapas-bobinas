@@ -870,7 +870,7 @@ export default function App() {
             <table className="saved-budgets-table">
               <thead>
                 <tr>
-                  <th>Nome do orçamento</th>
+                  <th>Número</th>
                   <th>Cliente</th>
                   <th>CNPJ</th>
                   <th>Dono</th>
